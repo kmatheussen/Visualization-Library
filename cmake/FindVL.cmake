@@ -39,7 +39,7 @@
 #
 #   GUI binding modules:
 #       VLWin32: Win32 gui bindings.
-#       VLQt4:   Qt4 gui bindings.
+#       VLQt5:   Qt5 gui bindings.
 #       VLMFC:   MFC gui bindings.
 #       VLWX:    wxWidgets gui bindings.
 #       VLGLUT:  GLUT gui bindings.
