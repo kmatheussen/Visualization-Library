@@ -113,6 +113,7 @@ namespace vlQt5
       QGLContext* glctx = new QGLContext(context()->format(), this);
       QGLFormat fmt = context()->format();
 
+      fmt.setProfile(QGLFormat::CompatibilityProfile);
       // double buffer
       fmt.setDoubleBuffer( info.doubleBuffer() );
 
@@ -178,6 +179,7 @@ namespace vlQt5
         printf("swap interval = %d\n", fmt.swapInterval() );
         printf("multisample = %d\n", (int)fmt.sampleBuffers() );
         printf("multisample samples = %d\n", (int)fmt.samples() );
+        printf("opengl version:  = %s\n", glGetString(GL_VERSION) );
 
         fmt = format();
 
@@ -196,6 +198,7 @@ namespace vlQt5
         printf("swap interval = %d\n", fmt.swapInterval() );
         printf("multisample = %d\n", (int)fmt.sampleBuffers() );
         printf("multisample samples = %d\n", (int)fmt.samples() );
+        printf("opengl version:  = %s\n", glGetString(GL_VERSION) );
         printf("--------------------------------------------\n");
       #endif
 
