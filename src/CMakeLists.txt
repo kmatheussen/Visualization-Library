@@ -37,7 +37,7 @@ add_subdirectory("tools")
 # GUI Modules (automatically enabled when their requirements are met)
 ################################################################################
 
-set (CMAKE_PREFIX_PATH "C:\\Program Files (x86)\\Windows Kits\\8.0\\Lib\\win8\\um\\x86")
+set (CMAKE_PREFIX_PATH "C:\\Program Files (x86)\\Windows Kits\\8.0\\Lib\\win8\\um\\x86"; "C:\\Qt\\qt-5.1.1-x64-msvc2010-opengl\\qt-5.1.1-x64-msvc2010-opengl\\lib\\cmake")
 
 # GLUT
 option(VL_GUI_GLUT_SUPPORT "Build GLUT support" OFF)
@@ -49,18 +49,12 @@ endif()
 
 # Qt5
 option(VL_GUI_QT5_SUPPORT "Build Qt5 support" OFF)
-if(VL_GUI_QT5_SUPPORT)
-	#find_package(Qt5 COMPONENTS Qt5Core Qt5Gui Qt5OpenGL REQUIRED)	
-        #find_package(Qt5Core REQUIRED)
-        #find_package(Qt5Gui REQUIRED)
+if(VL_GUI_QT5_SUPPORT)	     
         find_package(Qt5OpenGL REQUIRED)
-        find_package(Qt5Widgets REQUIRED)
-	#include("${QT_USE_FILE}")
+        find_package(Qt5Widgets REQUIRED)	
         include_directories(${Qt5Core_INCLUDE_DIRS})
-        include_directories(${Qt5Widgets_INCLUDE_DIRS})
-        #add_definitions(${Qt5Widgets_DEFINITIONS})
-	add_subdirectory("vlQt5")
-        #qt5_use_modules(${target} OpenGL Gui Widgets)
+        include_directories(${Qt5Widgets_INCLUDE_DIRS})        
+		add_subdirectory("vlQt5")        
 endif()
 
 if(VL_PLATFORM_WINDOWS)
