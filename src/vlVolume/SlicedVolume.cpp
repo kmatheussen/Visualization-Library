@@ -81,6 +81,7 @@ SlicedVolume::SlicedVolume()
   VL_DEBUG_SET_OBJECT_NAME()
   mSliceCount = 1024;
   mGeometry = new Geometry;
+  mGeometry->setObjectName("vl::SlicedVolume");
   
   fvec3 texc[] = 
   {
@@ -352,8 +353,8 @@ void SlicedVolume::generateTextureCoordinates(const ivec3& img_size)
 
   fvec3 texc[] = 
   {
-    fvec3(x0,y0,z1), fvec3(x1,y0,z1), fvec3(x1,y1,z1), fvec3(x0,y1,z1),
     fvec3(x0,y0,z0), fvec3(x1,y0,z0), fvec3(x1,y1,z0), fvec3(x0,y1,z0),
+    fvec3(x0,y0,z1), fvec3(x1,y0,z1), fvec3(x1,y1,z1), fvec3(x0,y1,z1),
   };
   memcpy(mTexCoord, texc, sizeof(texc));
 }

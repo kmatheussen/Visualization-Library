@@ -29,6 +29,7 @@
 /*                                                                                    */
 /**************************************************************************************/
 
+#include <vlCore/GlobalSettings.hpp>
 #include <vlGraphics/Renderer.hpp>
 #include <vlGraphics/OpenGLContext.hpp>
 #include <vlGraphics/GLSL.hpp>
@@ -82,7 +83,7 @@ namespace
   };
 }
 //------------------------------------------------------------------------------
-const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur_camera, real frame_clock)
+const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* camera, real frame_clock)
 {
   VL_CHECK_OGL()
 
@@ -96,6 +97,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
   class InOutContract 
   {
     Renderer* mRenderer;
+    std::vector<RenderStateSlot> mOriginalDefaultRS;
   public:
     InOutContract(Renderer* renderer, Camera* camera): mRenderer(renderer)
     {
@@ -110,6 +112,18 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
       camera->viewport()->setClearFlags( mRenderer->clearFlags() );
       camera->viewport()->activate();
 
+      OpenGLContext* gl_context = renderer->framebuffer()->openglContext();
+
+      // default render states override
+      for(size_t i=0; i<renderer->overriddenDefaultRenderStates().size(); ++i)
+      {
+        // save overridden default render state to be restored later
+        ERenderState type = renderer->overriddenDefaultRenderStates()[i].type();
+        mOriginalDefaultRS.push_back(gl_context->defaultRenderState(type));
+        // set new default render state
+        gl_context->setDefaultRenderState(renderer->overriddenDefaultRenderStates()[i]);
+      }
+
       // dispatch the renderer-started event.
       mRenderer->dispatchOnRendererStarted();
 
@@ -122,12 +136,22 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
       // dispatch the renderer-finished event
       mRenderer->dispatchOnRendererFinished();
 
+      OpenGLContext* gl_context = mRenderer->framebuffer()->openglContext();
+
+      // restore default render states
+      for(size_t i=0; i<mOriginalDefaultRS.size(); ++i)
+      {
+        gl_context->setDefaultRenderState(mOriginalDefaultRS[i]);
+      }
+
+      VL_CHECK( !globalSettings()->checkOpenGLStates() || mRenderer->framebuffer()->openglContext()->isCleanState(true) );
+
       // check user-generated errors.
       VL_CHECK_OGL()
 
       // note: we don't reset the render target here
     }
-  } contract(this, cur_camera);
+  } contract(this, camera);
 
   // --------------- rendering --------------- 
 
@@ -146,7 +170,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
   // this is already setup by the Viewport
   /*
   glEnable(GL_SCISSOR_TEST);
-  glScissor(cur_camera->viewport()->x(), cur_camera->viewport()->y(), cur_camera->viewport()->width(), cur_camera->viewport()->height());
+  glScissor(camera->viewport()->x(), camera->viewport()->y(), camera->viewport()->width(), camera->viewport()->height());
   */
 
   // --------------- rendering ---------------
@@ -171,13 +195,13 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
       cur_scissor = scissor;
       if (cur_scissor)
       {
-        cur_scissor->enable(cur_camera->viewport());
+        cur_scissor->enable(camera->viewport());
       }
       else
       {
         // scissor the viewport by default: needed for points and lines with size > 1.0 as they are not clipped against the viewport.
         VL_CHECK(glIsEnabled(GL_SCISSOR_TEST))
-        glScissor(cur_camera->viewport()->x(), cur_camera->viewport()->y(), cur_camera->viewport()->width(), cur_camera->viewport()->height());
+        glScissor(camera->viewport()->x(), camera->viewport()->y(), camera->viewport()->width(), camera->viewport()->height());
       }
     }
 
@@ -190,20 +214,24 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
 
       const Shader* shader = tok->mShader;
 
-      // shader override
+      // shader override: select the first that matches
 
       for( std::map< unsigned int, ref<Shader> >::const_iterator eom_it = mShaderOverrideMask.begin(); 
-           eom_it != mShaderOverrideMask.end(); ++eom_it )
+           eom_it != mShaderOverrideMask.end(); 
+           ++eom_it )
       {
         if ( eom_it->first & actor->enableMask() )
+        {
           shader = eom_it->second.get();
+          break;
+        }
       }
 
       // shader's render states
 
       if ( cur_render_state_set != shader->getRenderStateSet() )
       {
-        opengl_context->applyRenderStates( shader->getRenderStateSet(), cur_camera );
+        opengl_context->applyRenderStates( shader->getRenderStateSet(), camera );
         cur_render_state_set = shader->getRenderStateSet();
       }
 
@@ -229,7 +257,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
 
       // here the user has still the possibility to modify the Actor's uniforms
 
-      actor->dispatchOnActorRenderStarted( frame_clock, cur_camera, tok->mRenderable, shader, ipass );
+      actor->dispatchOnActorRenderStarted( frame_clock, camera, tok->mRenderable, shader, ipass );
 
       VL_CHECK_OGL()
 
@@ -258,7 +286,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
         if (shader->getUniformSet() && !shader->getUniformSet()->uniforms().empty())
           cur_shader_uniform_set = shader->getUniformSet();
         
-        if (actor->getUniformSet() && !actor->getUniformSet() ->uniforms().empty())
+        if (actor->getUniformSet() && !actor->getUniformSet()->uniforms().empty())
           cur_actor_uniform_set = actor->getUniformSet();
       } 
 
@@ -294,7 +322,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
 
         glsl_state = &glsl_state_it->second;
         // check for differences
-        update_cm = glsl_state->mCamera             != cur_camera;
+        update_cm = glsl_state->mCamera             != camera;
         update_tr = glsl_state->mTransform          != cur_transform;
         update_pu = glsl_state->mGLSLProgUniformSet != cur_glsl_prog_uniform_set && cur_glsl_prog_uniform_set != NULL;
         update_su = glsl_state->mShaderUniformSet   != cur_shader_uniform_set    && cur_shader_uniform_set    != NULL;
@@ -302,7 +330,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
       }
 
       // update glsl-state structure
-      glsl_state->mCamera             = cur_camera;
+      glsl_state->mCamera             = camera;
       glsl_state->mTransform          = cur_transform;
       glsl_state->mGLSLProgUniformSet = cur_glsl_prog_uniform_set;
       glsl_state->mShaderUniformSet   = cur_shader_uniform_set;
@@ -313,7 +341,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
       VL_CHECK_OGL()
 
       if (update_cm || update_tr)
-        projViewTransfCallback()->updateMatrices( update_cm, update_tr, cur_glsl_program, cur_camera, cur_transform );
+        projViewTransfCallback()->updateMatrices( update_cm, update_tr, cur_glsl_program, camera, cur_transform );
 
       VL_CHECK_OGL()
 
@@ -327,7 +355,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
       VL_CHECK_OGL()
 
       // glsl program uniform set
-      if (update_pu)
+      if ( update_pu )
       {
         VL_CHECK( cur_glsl_prog_uniform_set && cur_glsl_prog_uniform_set->uniforms().size() );
         VL_CHECK( shader->getRenderStateSet()->glslProgram() && shader->getRenderStateSet()->glslProgram()->handle() )
@@ -359,7 +387,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
       // --------------- Actor rendering ---------------
 
       // also compiles display lists and updates BufferObjects if necessary
-      tok->mRenderable->render( actor, shader, cur_camera, opengl_context );
+      tok->mRenderable->render( actor, shader, camera, opengl_context );
 
       VL_CHECK_OGL()
 
@@ -373,7 +401,7 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
   opengl_context->applyEnables( mDummyEnables.get() ); VL_CHECK_OGL();
 
   // clear render states
-  opengl_context->applyRenderStates( mDummyStateSet.get(), cur_camera ); VL_CHECK_OGL();
+  opengl_context->applyRenderStates( mDummyStateSet.get(), NULL ); VL_CHECK_OGL();
 
   // enabled texture unit #0
   VL_glActiveTexture( GL_TEXTURE0 ); VL_CHECK_OGL();
@@ -385,8 +413,6 @@ const RenderQueue* Renderer::render(const RenderQueue* render_queue, Camera* cur
 
   // disable all vertex arrays, note this also calls "glBindBuffer(GL_ARRAY_BUFFER, 0)"
   opengl_context->bindVAS(NULL, false, false); VL_CHECK_OGL();
-
-  VL_CHECK( opengl_context->isCleanState(true) );
 
   return render_queue;
 }

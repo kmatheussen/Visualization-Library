@@ -30,88 +30,66 @@
 /**************************************************************************************/
 
 #include <vlCore/DiskDirectory.hpp>
-#include <vlWin32/Win32Window.hpp>
+#include <vlQt4/Qt4Widget.hpp>
 #include <vlCore/Log.hpp>
 #include <vlCore/Say.hpp>
 #include "tests.hpp"
 
 using namespace vl;
-using namespace vlWin32;
+using namespace vlQt4;
 
-class TestBatteryWin32: public TestBattery
+class TestBatteryQt4: public TestBattery
 {
 public:
-  void runGUI(const String& title, BaseDemo* applet, OpenGLContextFormat format, int x, int y, int width, int height, fvec4 bk_color, vec3 eye, vec3 center)
+  TestBatteryQt4(QApplication& app): mApplication(app) {}
+
+  void runGUI(const vl::String& title, BaseDemo* applet, vl::OpenGLContextFormat format, int x, int y, int width, int height, vl::fvec4 bk_color, vl::vec3 eye, vl::vec3 center)
   {
     /* used to display the application title next to FPS counter */
     applet->setAppletName(title);
 
-    /* create a native Win32 window */
-    ref<vlWin32::Win32Window> win32_window = new vlWin32::Win32Window;
+    /* create a native Qt4 window */
+    vl::ref<vlQt4::Qt4Widget> qt4_window = new vlQt4::Qt4Widget;
 
-    setupApplet(applet, win32_window.get(), bk_color, eye, center);
-
-    /* Used to test OpenGL Core Profile */
-#if 0
-    int attribs[] =
-    {
-        WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-        WGL_CONTEXT_MINOR_VERSION_ARB, 1,
-
-        // Includes removed & deprecated features.
-        // WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB, 
-
-        // Does not include previously removed features, but might include currently deprecated (not yet removed) ones.
-        // WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-
-        // Does not include any (previously or currently) deprecated feature.
-        WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-
-        0
-    };
-    win32_window->setContextAttribs(attribs, sizeof(attribs)/sizeof(attribs[0]));
-#endif
+    setupApplet(applet, qt4_window.get(), bk_color, eye, center);
 
     /* Initialize the OpenGL context and window properties */
-    win32_window->initWin32GLWindow(NULL, NULL, title, format, x, y, width, height );
+    qt4_window->initQt4Widget( title, format, NULL, x, y, width, height );
 
     /* show the window */
-    win32_window->show();
+    qt4_window->show();
 
-    /* run the Win32 message loop */
-    vlWin32::messageLoop();
+    /* run the Qt4 message loop */
+    mApplication.exec();
 
     /* deallocate the window with all the OpenGL resources before shutting down Visualization Library */
-    win32_window = NULL;
+    qt4_window = NULL;
   }
+
+public:
+  QApplication& mApplication;
 };
 //-----------------------------------------------------------------------------
-int APIENTRY WinMain(HINSTANCE /*hCurrentInst*/, HINSTANCE /*hPreviousInst*/, LPSTR lpszCmdLine, int /*nCmdShow*/)
+int main(int argc, char *argv[])
 {
+  QApplication app(argc, argv);
+
   /* parse command line arguments */
-  int test = 0;
-  String cmd = lpszCmdLine;
-  std::vector<String> parms;
-  cmd.split(' ', parms);
-  std::string test_str;
-  if (parms.size()>=1)
-  {
-    test = parms[0].toInt();
-    test_str = parms[0].toStdString();
-  }
+  int   test = 0;
+  if (argc>=2)
+    test = atoi(argv[1]);
 
   /* setup the OpenGL context format */
-  OpenGLContextFormat format;
+  vl::OpenGLContextFormat format;
   format.setDoubleBuffer(true);
-  format.setRGBABits( 8, 8, 8, 0 );
+  format.setRGBABits( 8,8,8,8 );
   format.setDepthBufferBits(24);
-  format.setStencilBufferBits(8);
   format.setFullscreen(false);
-  /*format.setMultisampleSamples(8);
-  format.setMultisample(true);*/
+  format.setMultisampleSamples(16);
+  format.setMultisample(false);
 
-  TestBatteryWin32 test_battery;
-  test_battery.run(test, test_str, format);
+  TestBatteryQt4 test_battery(app);
+  test_battery.run(test, argv[1], format);
 
   return 0;
 }

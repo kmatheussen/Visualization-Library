@@ -113,7 +113,7 @@ void GLSLShader::setSource( const String& source_or_path )
     else
       new_src = source_or_path.toStdString();
   }
-  
+
   // update only if the source is actually different
   if (new_src != "ERROR" && new_src != mSource)
   {
@@ -489,7 +489,7 @@ void GLSLProgram::preLink()
     }
   }
 
-  // Note that OpenGL 3.2 and 4 do not use glProgramParameter to define the layout of the 
+  // Note that OpenGL 3.2 and 4 do not use glProgramParameter to define the layout of the
   // input/output geometry but something like this in the geometry shader:
   //
   // layout(triangles) in;
@@ -543,7 +543,7 @@ void GLSLProgram::postLink()
   if (uniform_len)
   {
     std::vector<char> tmp_buf;
-    tmp_buf.resize(uniform_len);
+    tmp_buf.resize(uniform_len+1); // +1: just for safety in case of buggy drivers.
     char* name = &tmp_buf[0];
 
     int uniform_count = 0;
@@ -552,7 +552,26 @@ void GLSLProgram::postLink()
     {
       GLenum type;
       int size;
-      glGetActiveUniform(handle(), i, uniform_len, NULL, &size, &type, name); VL_CHECK_OGL();
+      std::fill(tmp_buf.begin(), tmp_buf.end(), 0); // reset string to all zeros: just for safety in case of buggy drivers.
+      int length = 0;
+      glGetActiveUniform(handle(), i, (GLsizei)tmp_buf.size(), &length, &size, &type, name); VL_CHECK_OGL();
+
+      // workaround for NVIDIA drivers bug: remove the trailing [] after the uniform name.
+      // See also: http://www.visualizationlibrary.org/forum/viewtopic.php?f=3&t=307
+      if (name[length-1] == ']')
+      {
+        char* bracket = strrchr(name, '[');
+        if (bracket)
+        {
+          Log::warning( Say("Driver bug: glGetActiveUniform() returned a uniform name '%s' containing square brackets!\n"
+                          "VL will continue trimming them from the uniform's name.\n"
+                          "Please update your drivers and report the issue to your driver vendor.\n"
+                          "Driver info: vendor: %s, renderer: %s, OpenGL version: %s\n"
+                          ) << name << glGetString(GL_VENDOR) << glGetString(GL_RENDERER) << glGetString(GL_VERSION) );
+          *bracket = 0;
+        }
+      }
+
       ref<UniformInfo> uinfo = new UniformInfo(name, (EUniformType)type, size, glGetUniformLocation(handle(), name));
       mActiveUniforms[name] = uinfo;
     }
@@ -596,12 +615,12 @@ bool GLSLProgram::linkStatus() const
   VL_CHECK( Has_GLSL )
   if( !Has_GLSL )
     return false;
-  
+
   VL_CHECK(handle())
 
   if (handle() == 0)
     return false;
-  
+
   int status = 0;
   glGetProgramiv(handle(), GL_LINK_STATUS, &status); VL_CHECK_OGL();
   return status == GL_TRUE;
@@ -613,7 +632,7 @@ String GLSLProgram::infoLog() const
   VL_CHECK( Has_GLSL )
   if( !Has_GLSL )
     return "OpenGL Shading Language not supported!\n";
-  
+
   VL_CHECK(handle())
 
   if (handle() == 0)
@@ -714,10 +733,10 @@ bool GLSLProgram::applyUniformSet(const UniformSet* uniforms) const
 
   if(!uniforms)
     return false;
-  
+
   if (!linked())
     return false;
-  
+
   if (!handle())
     return false;
 
@@ -734,6 +753,17 @@ bool GLSLProgram::applyUniformSet(const UniformSet* uniforms) const
     #if 1
       const UniformInfo* uinfo = activeUniformInfo(uniform->name().c_str());
       int location = uinfo ? uinfo->Location : -1;
+
+      #ifndef NDEBUG
+      if (location == -1)
+      {
+        std::map<std::string, ref<UniformInfo> >::const_iterator it = activeUniforms().begin();
+        Log::warning("\nActive uniforms:\n");
+        for( ; it != activeUniforms().end(); ++it )
+          Log::warning( Say("\t%s\n") << it->first.c_str() );
+      }
+      #endif
+
     #else
       int location = glGetUniformLocation(handle(), uniform->name().c_str());
     #endif
@@ -882,11 +912,11 @@ bool GLSLProgram::programBinary(GLenum binary_format, const void* binary, int le
   {
     // pre-link operations
     preLink();
-    
+
     // load glsl program and link
     VL_glProgramBinary(handle(), binary_format, binary, length); VL_CHECK_OGL();
     mScheduleLink = !linkStatus();
-    
+
     // log error
     if(linked())
     {
@@ -905,7 +935,7 @@ bool GLSLProgram::programBinary(GLenum binary_format, const void* binary, int le
       Log::bug( Say("Info log:\n%s\n") << infoLog() );
       VL_TRAP();
     }
-    
+
     return linked();
   }
   else

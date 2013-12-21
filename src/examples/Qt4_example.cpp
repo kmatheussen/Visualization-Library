@@ -29,89 +29,65 @@
 /*                                                                                    */
 /**************************************************************************************/
 
-#include <vlCore/DiskDirectory.hpp>
-#include <vlWin32/Win32Window.hpp>
-#include <vlCore/Log.hpp>
-#include <vlCore/Say.hpp>
-#include "tests.hpp"
+#include <vlCore/VisualizationLibrary.hpp>
+#include <vlQt4/Qt4Widget.hpp>
+#include "Applets/App_RotatingCube.hpp"
 
 using namespace vl;
-using namespace vlWin32;
+using namespace vlQt4;
 
-class TestBatteryWin32: public TestBattery
+int main(int argc, char *argv[])
 {
-public:
-  void runGUI(const String& title, BaseDemo* applet, OpenGLContextFormat format, int x, int y, int width, int height, fvec4 bk_color, vec3 eye, vec3 center)
-  {
-    /* used to display the application title next to FPS counter */
-    applet->setAppletName(title);
+  QApplication app(argc, argv);
 
-    /* create a native Win32 window */
-    ref<vlWin32::Win32Window> win32_window = new vlWin32::Win32Window;
-
-    setupApplet(applet, win32_window.get(), bk_color, eye, center);
-
-    /* Used to test OpenGL Core Profile */
-#if 0
-    int attribs[] =
-    {
-        WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
-        WGL_CONTEXT_MINOR_VERSION_ARB, 1,
-
-        // Includes removed & deprecated features.
-        // WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB, 
-
-        // Does not include previously removed features, but might include currently deprecated (not yet removed) ones.
-        // WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
-
-        // Does not include any (previously or currently) deprecated feature.
-        WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-
-        0
-    };
-    win32_window->setContextAttribs(attribs, sizeof(attribs)/sizeof(attribs[0]));
-#endif
-
-    /* Initialize the OpenGL context and window properties */
-    win32_window->initWin32GLWindow(NULL, NULL, title, format, x, y, width, height );
-
-    /* show the window */
-    win32_window->show();
-
-    /* run the Win32 message loop */
-    vlWin32::messageLoop();
-
-    /* deallocate the window with all the OpenGL resources before shutting down Visualization Library */
-    win32_window = NULL;
-  }
-};
-//-----------------------------------------------------------------------------
-int APIENTRY WinMain(HINSTANCE /*hCurrentInst*/, HINSTANCE /*hPreviousInst*/, LPSTR lpszCmdLine, int /*nCmdShow*/)
-{
-  /* parse command line arguments */
-  int test = 0;
-  String cmd = lpszCmdLine;
-  std::vector<String> parms;
-  cmd.split(' ', parms);
-  std::string test_str;
-  if (parms.size()>=1)
-  {
-    test = parms[0].toInt();
-    test_str = parms[0].toStdString();
-  }
+  /* init Visualization Library */
+  VisualizationLibrary::init();
 
   /* setup the OpenGL context format */
   OpenGLContextFormat format;
   format.setDoubleBuffer(true);
-  format.setRGBABits( 8, 8, 8, 0 );
+  format.setRGBABits( 8,8,8,8 );
   format.setDepthBufferBits(24);
   format.setStencilBufferBits(8);
   format.setFullscreen(false);
-  /*format.setMultisampleSamples(8);
-  format.setMultisample(true);*/
+  //format.setMultisampleSamples(16);
+  //format.setMultisample(true);
 
-  TestBatteryWin32 test_battery;
-  test_battery.run(test, test_str, format);
+  /* create the applet to be run */
+  ref<Applet> applet = new App_RotatingCube;
+  applet->initialize();
+  /* create a native Qt4 window */
+  ref<vlQt4::Qt4Widget> qt4_window = new vlQt4::Qt4Widget;
+  /* bind the applet so it receives all the GUI events related to the OpenGLContext */
+  qt4_window->addEventListener(applet.get());
+  /* target the window so we can render on it */
+  applet->rendering()->as<Rendering>()->renderer()->setFramebuffer( qt4_window->framebuffer() );
+  /* black background */
+  applet->rendering()->as<Rendering>()->camera()->viewport()->setClearColor( black );
+  /* define the camera position and orientation */
+  vec3 eye    = vec3(0,10,35); // camera position
+  vec3 center = vec3(0,0,0);   // point the camera is looking at
+  vec3 up     = vec3(0,1,0);   // up direction
+  mat4 view_mat = mat4::getLookAt(eye, center, up);
+  applet->rendering()->as<Rendering>()->camera()->setViewMatrix( view_mat );
+  /* Initialize the OpenGL context and window properties */
+  int x = 10;
+  int y = 10;
+  int width = 512;
+  int height= 512;
+  qt4_window->initQt4Widget( "Visualization Library on Qt4 - Rotating Cube", format, NULL, x, y, width, height );
+  /* show the window */
+  qt4_window->show();
 
-  return 0;
+  /* run the Win32 message loop */
+  int val = app.exec();
+
+  /* deallocate the window with all the OpenGL resources before shutting down Visualization Library */
+  qt4_window = NULL;
+
+  /* shutdown Visualization Library */
+  VisualizationLibrary::shutdown();
+
+  return val;
 }
+// Have fun!

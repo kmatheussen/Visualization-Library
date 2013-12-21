@@ -63,11 +63,25 @@ namespace vl
     
     ProjViewTransfCallback* projViewTransfCallback() { return mProjViewTransfCallback.get(); }
 
-    /** A bitmask/Shader map used to everride the Shader of those Actors whose enable mask satisfy the following condition: (Actors::enableMask() & bitmask) != 0. */
+    /** A bitmask/Shader map used to everride the Shader of those Actors whose enable mask satisfy the following condition: 
+        (Actors::enableMask() & bitmask) != 0. Useful when you want to override the Shader of a whole set of Actors.
+        If multiple mask/shader pairs match an Actor's enable mask then the shader with the corresponding lowest mask will be used.
+        See also vl::Actor::enableMask() and vl::Rendering::effectOverrideMask(). */
     const std::map<unsigned int, ref<Shader> >& shaderOverrideMask() const { return mShaderOverrideMask; }
 
-    /** A bitmask/Shader map used to everride the Shader of those Actors whose enable mask satisfy the following condition: (Actors::enableMask() & bitmask) != 0. */
+    /** A bitmask/Shader map used to everride the Shader of those Actors whose enable mask satisfy the following condition: 
+        (Actors::enableMask() & bitmask) != 0. Useful when you want to override the Shader of a whole set of Actors.
+        If multiple mask/shader pairs match an Actor's enable mask then the shader with the corresponding lowest mask will be used.
+        See also vl::Actor::enableMask() and vl::Rendering::effectOverrideMask(). */
     std::map<unsigned int, ref<Shader> >& shaderOverrideMask() { return mShaderOverrideMask; }
+
+    /** Render states that will be used as default by the opengl context by this renderer. 
+        Useful for example to setup the default left/right color mask for anaglyph stereo rendering. */
+    std::vector<RenderStateSlot>& overriddenDefaultRenderStates() { return mOverriddenDefaultRenderStates; }
+
+    /** Render states that will be used as default by the opengl context by this renderer. 
+        Useful for example to setup the default left/right color mask for anaglyph stereo rendering. */
+    const std::vector<RenderStateSlot>& overriddenDefaultRenderStates() const { return mOverriddenDefaultRenderStates; }
 
     bool isEnabled(unsigned int mask) { return (mask & mEnableMask) != 0; }
 
@@ -88,6 +102,8 @@ namespace vl
     vl::ref<RenderStateSet> mDummyStateSet;
 
     std::map<unsigned int, ref<Shader> > mShaderOverrideMask;
+
+    std::vector<RenderStateSlot> mOverriddenDefaultRenderStates;
 
     ref<ProjViewTransfCallback> mProjViewTransfCallback;
   };

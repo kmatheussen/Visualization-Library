@@ -124,7 +124,6 @@ void RaycastVolume::updateUniforms( vl::Actor*actor, vl::real, const vl::Camera*
 
     int light_enable[4] = { 0,0,0,0 };
     fvec3 light_position[4];
-    bool has_lights = false;
 
     for( int i=0; i<4; ++i )
     {
@@ -132,7 +131,6 @@ void RaycastVolume::updateUniforms( vl::Actor*actor, vl::real, const vl::Camera*
       light_enable[i] = light != NULL;
       if ( light )
       {
-        has_lights = true;
         // light position following transform
         if ( light->boundTransform() )
           light_position[i] = ( fmat4 )light->boundTransform()->worldMatrix() * light->position().xyz();
@@ -217,8 +215,8 @@ void RaycastVolume::generateTextureCoordinates( const ivec3& size )
 
   fvec3 texc[] = 
   {
-    fvec3( x0,y0,z1 ), fvec3( x1,y0,z1 ), fvec3( x1,y1,z1 ), fvec3( x0,y1,z1 ),
-    fvec3( x0,y0,z0 ), fvec3( x1,y0,z0 ), fvec3( x1,y1,z0 ), fvec3( x0,y1,z0 ),
+    fvec3( x0,y0,z1 ), fvec3( x1,y0,z1 ), fvec3( x1,y1,z1 ), fvec3( x0,y1,z1 ), // mic fixme: i don't remember why we need z1 here and z0 below...
+    fvec3( x0,y0,z0 ), fvec3( x1,y0,z0 ), fvec3( x1,y1,z0 ), fvec3( x0,y1,z0 ), 
   };
   memcpy( mTexCoord->ptr(), texc, sizeof( texc ) );
 }
@@ -244,8 +242,8 @@ void RaycastVolume::generateTextureCoordinates(const ivec3& img_size, const ivec
 
     fvec3 texc[] = 
     {
-        fvec3(x0,y0,z0), fvec3(x1,y0,z0), fvec3(x1,y1,z0), fvec3(x0,y1,z0),
-        fvec3(x0,y0,z1), fvec3(x1,y0,z1), fvec3(x1,y1,z1), fvec3(x0,y1,z1)
+      fvec3( x0,y0,z1 ), fvec3( x1,y0,z1 ), fvec3( x1,y1,z1 ), fvec3( x0,y1,z1 ), 
+      fvec3( x0,y0,z0 ), fvec3( x1,y0,z0 ), fvec3( x1,y1,z0 ), fvec3( x0,y1,z0 ), 
     };
     memcpy( mTexCoord->ptr(), texc, sizeof(texc) );
 }

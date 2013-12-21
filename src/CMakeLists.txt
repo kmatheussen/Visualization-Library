@@ -37,8 +37,6 @@ add_subdirectory("tools")
 # GUI Modules (automatically enabled when their requirements are met)
 ################################################################################
 
-set (CMAKE_PREFIX_PATH "C:\\Program Files (x86)\\Windows Kits\\8.0\\Lib\\win8\\um\\x86"; "C:\\Qt\\qt-5.1.1-x64-msvc2010-opengl\\qt-5.1.1-x64-msvc2010-opengl\\lib\\cmake")
-
 # GLUT
 option(VL_GUI_GLUT_SUPPORT "Build GLUT support" OFF)
 if(VL_GUI_GLUT_SUPPORT)

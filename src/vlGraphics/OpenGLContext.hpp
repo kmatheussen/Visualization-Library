@@ -36,6 +36,7 @@
 #include <vlGraphics/UIEventListener.hpp>
 #include <vlGraphics/FramebufferObject.hpp> // Framebuffer and FramebufferObject
 #include <vlGraphics/RenderState.hpp>
+#include <vlGraphics/NaryQuickMap.hpp>
 #include <vector>
 #include <set>
 
@@ -160,20 +161,42 @@ namespace vl
     //! Returns the address of an OpenGL extension function
     void* getProcAddress(const char* function_name);
 
-    //! The render target representing this OpenGL context.
+    //! The render target representing the default left framebuffer.
+    //! It's basically just a Framebuffer with both draw-buffer and read-buffer set to RDB_BACK_LEFT by default.
     //! The returned Framebuffer's dimensions will be automatically updated to the OpenGLContext's dimensions.
-    Framebuffer* framebuffer() { return mFramebuffer.get(); }
+    Framebuffer* leftFramebuffer() { return mLeftFramebuffer.get(); }
+    
+    //! The render target representing the default left framebuffer.
+    //! It's basically just a Framebuffer with both draw-buffer and read-buffer set to RDB_BACK_LEFT by default.
+    //! The returned Framebuffer's dimensions will be automatically updated to the OpenGLContext's dimensions.
+    const Framebuffer* leftFramebuffer() const { return mLeftFramebuffer.get(); }
 
-    //! The render target representing this OpenGL context.
+    //! The render target representing the default right framebuffer (if a stereo OpenGL context is present).
+    //! It's basically just a Framebuffer with both draw-buffer and read-buffer set to RDB_BACK_RIGHT by default.
     //! The returned Framebuffer's dimensions will be automatically updated to the OpenGLContext's dimensions.
-    const Framebuffer* framebuffer() const { return mFramebuffer.get(); }
+    Framebuffer* rightFramebuffer() { return mRightFramebuffer.get(); }
+    
+    //! The render target representing the default right framebuffer (if a stereo OpenGL context is present).
+    //! It's basically just a Framebuffer with both draw-buffer and read-buffer set to RDB_BACK_RIGHT by default.
+    //! The returned Framebuffer's dimensions will be automatically updated to the OpenGLContext's dimensions.
+    const Framebuffer* rightFramebuffer() const { return mRightFramebuffer.get(); }
+
+    //! The default render target (always returns leftFramebuffer()).
+    //! The returned Framebuffer's dimensions will be automatically updated to the OpenGLContext's dimensions.
+    Framebuffer* framebuffer() { return leftFramebuffer(); }
+
+    //! The default render target (always returns leftFramebuffer()).
+    //! The returned Framebuffer's dimensions will be automatically updated to the OpenGLContext's dimensions.
+    const Framebuffer* framebuffer() const { return leftFramebuffer(); }
 
     //! Equivalent to \p "createFramebufferObject(0,0);".
     ref<FramebufferObject> createFramebufferObject() { return createFramebufferObject(0,0); }
 
     //! Creates a new FramebufferObject (framebuffer object Framebuffer).
     //! \note A framebuffer object always belongs to an OpenGL context and in order to render on it the appropriate OpenGL context must be active.
-    ref<FramebufferObject> createFramebufferObject(int width, int height);
+    ref<FramebufferObject> createFramebufferObject(int width, int height, 
+      EReadDrawBuffer draw_buffer=RDB_COLOR_ATTACHMENT0, 
+      EReadDrawBuffer read_buffer=RDB_COLOR_ATTACHMENT0);
 
     //! Destroys the specified FramebufferObject.
     void destroyFramebufferObject(FramebufferObject* fbort);
@@ -212,10 +235,10 @@ namespace vl
     virtual void setSize(int /*w*/, int /*h*/) {}
 
     //! Returns the width in pixels of an OpenGLContext.
-    int width() const { return mFramebuffer->width(); }
+    int width() const { return framebuffer()->width(); }
     
     //! Returns the height in pixels of an OpenGLContext.
-    int height() const { return mFramebuffer->height(); }
+    int height() const { return framebuffer()->height(); }
 
     //! If the OpenGL context is a widget this function sets whether the mouse is visible over it or not.
     virtual void setMouseVisible(bool) { mMouseVisible=false; }
@@ -278,8 +301,10 @@ namespace vl
     void dispatchResizeEvent(int w, int h) 
     {
       makeCurrent();
-      mFramebuffer->setWidth(w);
-      mFramebuffer->setHeight(h);
+      leftFramebuffer()->setWidth(w);
+      leftFramebuffer()->setHeight(h);
+      rightFramebuffer()->setWidth(w);
+      rightFramebuffer()->setHeight(h);
 
       std::vector< ref<UIEventListener> > temp_clients = eventListeners();
       for( unsigned i=0; i<temp_clients.size(); ++i )
@@ -454,6 +479,20 @@ namespace vl
     //! Resets all the interanal render-states-tables - For internal use only.
     void resetRenderStates();
 
+    //! Defines the default render state slot to be used by the opengl context.
+    void setDefaultRenderState(const RenderStateSlot& rs_slot) 
+    { 
+      mDefaultRenderStates[rs_slot.type()] = rs_slot; 
+      // if we are in the default render state then apply it immediately
+      if (!mCurrentRenderStateSet->hasKey(rs_slot.type()))
+      {
+        mDefaultRenderStates[rs_slot.type()].apply(NULL, this); VL_CHECK_OGL();
+      }
+    }
+
+    //! Returns the default render state slot used by VL when a specific render state type is left undefined.
+    const RenderStateSlot& defaultRenderState(ERenderState rs) { return mDefaultRenderStates[rs]; }
+
     //! Resets the OpenGL states necessary to begin and finish a rendering. - For internal use only.
     void resetContextStates(EResetContextStates start_or_finish);
 
@@ -502,7 +541,8 @@ namespace vl
     const fvec4& vertexAttribValue(int i) const { VL_CHECK(i<VL_MAX_GENERIC_VERTEX_ATTRIB); return mVertexAttribValue[i]; }
 
   protected:
-    ref<Framebuffer> mFramebuffer;
+    ref<Framebuffer> mLeftFramebuffer;
+    ref<Framebuffer> mRightFramebuffer;
     std::vector< ref<FramebufferObject> > mFramebufferObject;
     std::vector< ref<UIEventListener> > mEventListeners;
     std::set<EKey> mKeyboard;
@@ -518,19 +558,17 @@ namespace vl
     std::string mExtensions;
 
     // --- Render States ---
-    // state table
-    int mEnableTable[EN_EnableCount];
-    int mRenderStateTable[RS_RenderStateCount];
-    // current state
-    bool mCurrentEnable[EN_EnableCount];
-    const RenderState* mCurrentRenderState[RS_RenderStateCount];
-    // previous state
-    EEnable mPrevEnables[EN_EnableCount];
-    int mPrevEnablesCount;
-    ERenderState mPrevRenderStates[RS_RenderStateCount];
-    int mPrevRenderStatesCount;
+  
     // default render states
     RenderStateSlot mDefaultRenderStates[RS_RenderStateCount];
+
+    // applyEnables()
+    ref< NaryQuickMap<EEnable, EEnable, EN_EnableCount> > mCurrentEnableSet;
+    ref< NaryQuickMap<EEnable, EEnable, EN_EnableCount> > mNewEnableSet;
+
+    // applyRenderStates()
+    ref< NaryQuickMap<ERenderState, RenderStateSlot, RS_RenderStateCount> > mCurrentRenderStateSet;
+    ref< NaryQuickMap<ERenderState, RenderStateSlot, RS_RenderStateCount> > mNewRenderStateSet;
 
     // for each texture unit tells which target has been bound last.
     ETextureDimension mTexUnitBinding[VL_MAX_TEXTURE_UNITS];

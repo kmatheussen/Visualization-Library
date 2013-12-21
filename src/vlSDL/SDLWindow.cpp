@@ -188,8 +188,8 @@ bool SDLWindow::initSDLWindow(const vl::String& title, const vl::OpenGLContextFo
     return false;
   }
 
-  mFramebuffer->setWidth(width);
-  mFramebuffer->setHeight(height);
+  framebuffer()->setWidth(width);
+  framebuffer()->setHeight(height);
   mSDLWindow = this;
 
   // init key translation map
@@ -199,8 +199,8 @@ bool SDLWindow::initSDLWindow(const vl::String& title, const vl::OpenGLContextFo
   // SDL_VIDEO_WINDOW_POS
 
   char win_pos[32] = {0};
-  sprintf(win_pos, "%d,%d", x, y);
-  setenv("SDL_VIDEO_WINDOW_POS", win_pos, 0);
+  sprintf ( win_pos, "SDL_VIDEO_WINDOW_POS=%d,%d", x, y );
+  SDL_putenv(win_pos);
   // setenv("SDL_VIDEO_CENTERED", "YES", 0);
 
   // init SDL
