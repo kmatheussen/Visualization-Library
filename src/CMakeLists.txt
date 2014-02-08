@@ -45,6 +45,15 @@ if(VL_GUI_GLUT_SUPPORT)
 	add_subdirectory("vlGLUT")
 endif()
 
+# Qt4
+option(VL_GUI_QT4_SUPPORT "Build Qt4 support" OFF)
+if(VL_GUI_QT4_SUPPORT)
+	find_package(Qt4 COMPONENTS QtCore QtGui QtOpenGL QtMain REQUIRED)
+	include("${QT_USE_FILE}")
+	add_subdirectory("vlQt4")
+endif()
+
+
 # Qt5
 option(VL_GUI_QT5_SUPPORT "Build Qt5 support" OFF)
 if(VL_GUI_QT5_SUPPORT)
@@ -116,6 +125,7 @@ endif()
 ################################################################################
 
 cmake_dependent_option(VL_GUI_GLUT_EXAMPLES "Build GLUT examples" ON "VL_GUI_GLUT_SUPPORT" OFF)
+cmake_dependent_option(VL_GUI_QT4_EXAMPLES "Build Qt4 examples" ON "VL_GUI_QT4_SUPPORT" OFF)
 cmake_dependent_option(VL_GUI_QT5_EXAMPLES "Build Qt5 examples" ON "VL_GUI_QT5_SUPPORT" OFF)
 cmake_dependent_option(VL_GUI_MFC_EXAMPLES "Build MFC examples" ON "VL_GUI_MFC_SUPPORT" OFF)
 cmake_dependent_option(VL_GUI_WIN32_EXAMPLES "Build win32 examples" ON "VL_GUI_WIN32_SUPPORT" OFF)

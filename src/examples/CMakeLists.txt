@@ -62,6 +62,21 @@ if(VL_GUI_GLUT_EXAMPLES)
     VL_INSTALL_TARGET(vlGLUT_tests)
 endif()
 
+if(VL_GUI_QT4_EXAMPLES)
+	include(${QT_USE_FILE})
+
+	# Example
+	add_executable(vlQt4_example WIN32 Qt4_example.cpp Applets/App_RotatingCube.hpp)
+	target_link_libraries(vlQt4_example VLQt4 ${VL_LIBS_EXAMPLE} ${QT_LIBRARIES})
+	VL_INSTALL_TARGET(vlQt4_example)
+
+ 	# Tests
+	add_executable(vlQt4_tests WIN32 Qt4_tests.cpp )
+	target_link_libraries(vlQt4_tests VLApplets VLQt4 ${VL_LIBS_TESTS} ${QT_LIBRARIES})
+	VL_INSTALL_TARGET(vlQt4_tests)
+endif()
+
+
 if(VL_GUI_QT5_EXAMPLES)
         #include(${QT_USE_FILE})
         include_directories(${Qt5Widgets_INCLUDE_DIRS})
