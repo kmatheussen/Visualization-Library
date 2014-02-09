@@ -33,8 +33,17 @@
 #include <vlQt4/Qt4Widget.hpp>
 #include "Applets/App_RotatingCube.hpp"
 
+//#include "tests.hpp"
+//#include "Applets/BaseDemo.hpp"
+//#include "Applets/BaseDemo.hpp"
+//#include "Applets/App_VectorGraphics.cpp"
+
+//extern BaseDemo* Create_App_VectorGraphics();
+
 using namespace vl;
 using namespace vlQt4;
+
+
 
 int main(int argc, char *argv[])
 {
@@ -50,11 +59,12 @@ int main(int argc, char *argv[])
   format.setDepthBufferBits(24);
   format.setStencilBufferBits(8);
   format.setFullscreen(false);
-  //format.setMultisampleSamples(16);
-  //format.setMultisample(true);
+  format.setMultisampleSamples(16);
+  format.setMultisample(true);
 
   /* create the applet to be run */
-  ref<Applet> applet = new App_RotatingCube;
+ref<Applet> applet = new App_RotatingCube;
+//  ref<Applet> applet = Create_App_VectorGraphics(); //new App_RotatingCube;
   applet->initialize();
   /* create a native Qt4 window */
   ref<vlQt4::Qt4Widget> qt4_window = new vlQt4::Qt4Widget;

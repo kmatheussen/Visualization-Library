@@ -29,12 +29,17 @@
 /*                                                                                    */
 /**************************************************************************************/
 
+#include <unistd.h>
+
 #include "BaseDemo.hpp"
 #include <vlCore/Colors.hpp>
 #include <vlVG/VectorGraphics.hpp>
 #include <vlVG/SceneManagerVectorGraphics.hpp>
 #include <vlGraphics/Geometry.hpp>
 #include <vlGraphics/Array.hpp>
+#include <vlGraphics/Font.hpp>
+#include <vlGraphics/FontManager.hpp>
+#include <vlGraphics/Text.hpp>
 
 class App_VectorGraphics: public BaseDemo
 {
@@ -57,15 +62,15 @@ public:
     // load images used later as textures
     
     // load colorful pattern & substitute black with transparent blue
-    vl::ref<vl::Image> pattern  = vl::loadImage("/images/pattern.bmp");
+    vl::ref<vl::Image> pattern  = vl::loadImage("pattern.bmp");
     pattern->substituteColorRGB_RGBA(0x000000,0x0000FFAA);
     // load transparent star
-    vl::ref<vl::Image> star = vl::loadImage("/images/star.png");
+    vl::ref<vl::Image> star = vl::loadImage("star.png");
     // colorize the point to green and black
-    vl::ref<vl::Image> circle16_bg = vl::loadImage("/images/circle16.png");
+    vl::ref<vl::Image> circle16_bg = vl::loadImage("circle16.png");
     circle16_bg->substituteColorGreenKey(0x00FF00,0x000000);
     // colorize the point to yellow and red
-    vl::ref<vl::Image> circle16_yr = vl::loadImage("/images/circle16.png");
+    vl::ref<vl::Image> circle16_yr = vl::loadImage("circle16.png");
     circle16_yr->substituteColorGreenKey(0xFFFF00,0xFF0000);
     // generate the color spectrums
     vl::ref<vl::Image> spectrum1 = vl::makeColorSpectrum(128, vl::blue,  vl::green, vl::yellow, vl::red);
@@ -74,6 +79,9 @@ public:
     // add a new VectorGraphics to our SceneManagerVectorGraphics
   
     vl::ref<vl::VectorGraphics> vg = new vl::VectorGraphics;
+    vg->setLineSmoothing(true);
+    vg->setPolygonSmoothing(true);
+
     vl::ref<vl::SceneManagerVectorGraphics> vgscene = new vl::SceneManagerVectorGraphics;
     vgscene->vectorGraphicObjects()->push_back(vg.get());
     rendering()->as<vl::Rendering>()->sceneManagers()->push_back(vgscene.get());
@@ -243,6 +251,7 @@ public:
 
       // rose create and bind transform
       mRoseTransform = new vl::Transform;
+#if 1
       rendering()->as<vl::Rendering>()->transform()->addChild(mRoseTransform.get());
       // draw our rotating rose as a set of 4 filled ellipses and bind them to mRoseTransform
       vg->fillEllipse(0,0 , 150,25)->setTransform(mRoseTransform.get());
@@ -260,6 +269,7 @@ public:
       // setup stencil test: renders only where the stencil buffer is set to 0x01
       vg->setStencilFunc(vl::FU_EQUAL, 0x01, 0x01);
       vg->setStencilOp(vl::SO_KEEP, vl::SO_KEEP, vl::SO_KEEP);
+#endif
 
       // make sure our matrix is clean
       vg->resetMatrix();
@@ -275,16 +285,31 @@ public:
       // finish with the stencil
       vg->setStencilTestEnabled(false);
 
+#if 1
       // render text following our rotating rose
-      vg->setFont("/font/bitstream-vera/Vera.ttf", 14, false);
+      vl::Font *font = vl::defFontManager()->acquireFont("/font/bitstream-vera/Vera.ttf", 14);
+      font->setSmooth(true);
+      //font->setFreeTypLoadForceAutoHint(true);
+      vg->setFont(font);
       vg->setColor(vl::black);
       // note that the 2D text is not transformed by mRoseTransform but just follows an idea point transformed by mRoseTransform.
-      vg->drawText("Stencil buffer in action here!", vl::AlignHCenter|vl::AlignVCenter)->setTransform(mRoseTransform.get());
+      vl::Text *text = new vl::Text;
+      text->setText("Stencil buffer in action here!");
+      text->setMode(vl::Text2D);
+      /*
+      text->setInterlineSpacing(0.1f);
+      text->setKerningEnabled(false);
+      */
+      text->setAlignment(vl::AlignHCenter|vl::AlignVCenter);
+      vg->drawText(text)->setTransform(mRoseTransform.get());
+#else
+      vg->drawText("Stencil buffer in action here!",vl::AlignHCenter|vl::AlignVCenter)->setTransform(mRoseTransform.get());
+#endif
 
       // ###### draws a rotated text ###### 
 
       vg->setColor(vl::black);
-      vg->setFont("/font/bitstream-vera/VeraMono.ttf", 14, true);
+      vg->setFont("VeraMono.ttf", 14, true);
       vg->pushMatrix();
       vg->rotate(45);
       vg->drawText(256, 256, "Rotated Text", vl::AlignHCenter|vl::AlignVCenter);
@@ -374,20 +399,66 @@ public:
     vg->endDrawing();
   }
 
+  vl::Time time;
+  vl::Time time2;
+  double counter;
+
   virtual void updateScene()
   {
-    vl::mat4 mat = vl::mat4::getRotation(vl::Time::currentTime() * 60.0f, 0, 0, 1);
-    mat = vl::mat4::getTranslation(sin(vl::Time::currentTime()*vl::fPi*0.25f)*200.0f,0,0) * mat;
-    mat = vl::mat4::getRotation(vl::Time::currentTime() * 5.0f, 0, 0, 1) * mat;
-    mat = vl::mat4::getTranslation(256,256,0) * mat;
-    mRoseTransform->setLocalMatrix(mat);
+    static bool inited =false;
+    if(inited==false){
+      time.start();
+      counter = -500;
+      inited=true;
+    }
 
+    //printf("UPdating scene\n");
+
+    //vl::Time time;
+    //time.start();
+
+    int pos = time.elapsed()*200.0;
+    //vl::mat4 mat = vl::mat4::getRotation(vl::Time::currentTime() * 60.0f, 0, 0, 1);
+    //mat = vl::mat4::getTranslation(0,pos,0); // * mat;
+    vl::mat4 mat = vl::mat4::getTranslation(0,counter,0); // * mat;
+    //mat = vl::mat4::getRotation(vl::Time::currentTime() * 5.0f / 40.0, 0, 0, 1) * mat;
+    //mat = vl::mat4::getRotation(0, 0, 0, 1) * mat;
+    mat = vl::mat4::getTranslation(256,256,0) * mat;
+    //mRoseTransform->setLocalAndWorldMatrix(mat);
+
+    rendering()->as<vl::Rendering>()->camera()->setViewMatrix( mat );
+
+    counter+=1.77;
+    if(counter >= 800){
+      counter = -500;
+      //time.start();
+    }
+
+    //printf("pos: %d\n",pos);
+    if(pos>500)
+      time.start();
+
+    /*
     mat.setIdentity();
-    mat.rotate(vl::Time::currentTime()*60, 0,0,1);
+    mat.rotate(vl::Time::currentTime()*60/100.0, 0,0,1);
     mat.translate(256,256,0);
-    mat.translate(200*cos(vl::Time::currentTime()*vl::fPi*2.0f/17.0f),0,0);
-    mat.translate(0,200*sin(vl::Time::currentTime()*vl::fPi*2.0f/9.0f),0);
+    mat.translate(200*cos(vl::Time::currentTime()*vl::fPi*2.0f/17.0f/100.0),0,0);
+    mat.translate(0,200*sin(vl::Time::currentTime()*vl::fPi*2.0f/9.0f/100.0),0);
     mStarTransform->setLocalMatrix(mat);
+    */
+
+#if 0
+    vl::mat4 mat = vl::mat4::getRotation(0.0f, 0, 0, 1);
+    mat.setIdentity();
+    mat.translate(200*cos(vl::Time::currentTime()*vl::fPi*2.0f/17.0f/100.0),0,0);
+
+    mRoseTransform->setLocalAndWorldMatrix(mat);
+#endif
+
+    //sleep(1);
+    //if(time2.elapsed()*1000.0>18.0)
+    //  printf("updating scene %fms\n",(float)time2.elapsed()*1000.0);
+    time2.start();
   }
 
   void resizeEvent(int w, int h)
