@@ -62,15 +62,15 @@ public:
     // load images used later as textures
     
     // load colorful pattern & substitute black with transparent blue
-    vl::ref<vl::Image> pattern  = vl::loadImage("pattern.bmp");
+    vl::ref<vl::Image> pattern  = vl::loadImage("/images/pattern.bmp");
     pattern->substituteColorRGB_RGBA(0x000000,0x0000FFAA);
     // load transparent star
-    vl::ref<vl::Image> star = vl::loadImage("star.png");
+    vl::ref<vl::Image> star = vl::loadImage("/images/star.png");
     // colorize the point to green and black
-    vl::ref<vl::Image> circle16_bg = vl::loadImage("circle16.png");
+    vl::ref<vl::Image> circle16_bg = vl::loadImage("/images/circle16.png");
     circle16_bg->substituteColorGreenKey(0x00FF00,0x000000);
     // colorize the point to yellow and red
-    vl::ref<vl::Image> circle16_yr = vl::loadImage("circle16.png");
+    vl::ref<vl::Image> circle16_yr = vl::loadImage("/images/circle16.png");
     circle16_yr->substituteColorGreenKey(0xFFFF00,0xFF0000);
     // generate the color spectrums
     vl::ref<vl::Image> spectrum1 = vl::makeColorSpectrum(128, vl::blue,  vl::green, vl::yellow, vl::red);
@@ -309,7 +309,7 @@ public:
       // ###### draws a rotated text ###### 
 
       vg->setColor(vl::black);
-      vg->setFont("VeraMono.ttf", 14, true);
+      vg->setFont("/font/VeraMono.ttf", 14, true);
       vg->pushMatrix();
       vg->rotate(45);
       vg->drawText(256, 256, "Rotated Text", vl::AlignHCenter|vl::AlignVCenter);
@@ -408,7 +408,7 @@ public:
     static bool inited =false;
     if(inited==false){
       time.start();
-      counter = -500;
+      counter = 0;
       inited=true;
     }
 
