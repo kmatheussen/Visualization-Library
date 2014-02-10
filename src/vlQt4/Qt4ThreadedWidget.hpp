@@ -155,14 +155,7 @@ namespace vlQt4
       printf("hello\n");
     }
 
-    QGLFormat desiredFormat(){
-      QGLFormat fmt;
-      fmt.setSwapInterval(1);
-      return fmt;
-    }
-
     Qt4ThreadedWidget() //(QWidget *parent=0, const char *name="no name" )
-      //: QGLWidget //(desiredFormat())
       : mythread(new MyThread(this))
       {
       }
