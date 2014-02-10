@@ -35,6 +35,7 @@
 #include <vlQt4/link_config.hpp>
 #include <vlCore/VisualizationLibrary.hpp>
 #include <vlGraphics/OpenGLContext.hpp>
+#include <vlCore/Log.hpp>
 #include <QtGui/QApplication>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QWidget>
@@ -43,6 +44,8 @@
 #include <QtCore/QTime>
 #include <QtCore/QObject>
 #include <QtCore/QThread>
+#include <QtCore/QMutex>
+#include <QtCore/QQueue>
 #include <QtOpenGL/QGLWidget>
 #include <QtOpenGL/QGLFormat>
 
@@ -52,11 +55,35 @@ namespace vlQt4
   class VLQT4_EXPORT Qt4ThreadedWidget : public QGLWidget {
     //    Q_OBJECT
 
-  public:
+    struct Event{
+      Event()
+        :button(vl::LeftButton),x(0),y(0),wheel(0),unicode_ch(0),key(vl::Key_None)
+      {}
+        
+      enum{
+        MOUSEPRESS,
+        MOUSERELEASE,
+        MOUSEMOVE,
+        WHEEL,
+        KEYPRESS,
+        KEYRELEASE
+      } type;
+      vl::EMouseButton button;
+      int x;
+      int y;
+      float wheel;
+      unsigned short unicode_ch;
+      vl::EKey key;
+    };
 
+
+  public:
 
     struct MyThread : public QThread, vl::OpenGLContext {
       Qt4ThreadedWidget *_widget;
+
+      QMutex mutex;
+      QQueue<Event> queue;
 
       volatile int widget_width;
       volatile int widget_height;
@@ -69,8 +96,42 @@ namespace vlQt4
         , widget_height(10)
       { }
 
+      void handle_events(){
+        QMutexLocker locker(&mutex);
+
+        while (!queue.isEmpty()){
+          Event e = queue.dequeue();
+          switch(e.type){
+          case Event::MOUSEPRESS:
+            dispatchMouseDownEvent(e.button, e.x, e.y);
+            break;
+          case Event::MOUSERELEASE:
+            dispatchMouseUpEvent(e.button, e.x, e.y);
+            break;
+          case Event::MOUSEMOVE:
+            dispatchMouseMoveEvent(e.x,e.y);
+          case Event::WHEEL:
+            dispatchMouseWheelEvent(e.wheel);
+            break;
+          case Event::KEYPRESS:
+            dispatchKeyPressEvent(e.unicode_ch,e.key);
+            break;
+          case Event::KEYRELEASE:
+            dispatchKeyReleaseEvent(e.unicode_ch,e.key);
+            break;
+          default:
+            abort();
+          }
+        }
+      }
+
+      void push_event(Event e){
+        QMutexLocker locker(&mutex);
+        queue.enqueue(e);
+      }
+
       void update(){
-        printf("update callled\n");
+        //printf("update callled\n");
       }
 
       void swapBuffers()
@@ -103,6 +164,8 @@ namespace vlQt4
             printf("resizing to %d/%d\n",width,height);
             dispatchResizeEvent(width,height);
           }
+
+          handle_events();
 
           //widget->swapBuffers();    
           
@@ -150,9 +213,85 @@ namespace vlQt4
     //virtual void 	paintGL () {}
     //virtual bool 	event ( QEvent * e ){ return true;    }
 
-    void mousePressEvent(QMouseEvent*)
+    void mouseMoveEvent(QMouseEvent* ev)
     {
-      printf("hello\n");
+      Event e;
+      e.type=Event::MOUSEMOVE;
+      e.x=ev->x();
+      e.y=ev->y();
+      mythread->push_event(e);
+    }
+
+    void mousePressEvent(QMouseEvent* ev)
+    {
+      vl::EMouseButton bt = vl::NoButton;
+      switch(ev->button())
+      {
+      case Qt::LeftButton:  bt = vl::LeftButton; break;
+      case Qt::RightButton: bt = vl::RightButton; break;
+      case Qt::MidButton:   bt = vl::MiddleButton; break;
+      default:
+        bt = vl::UnknownButton; break;
+      }
+
+      Event e;
+      e.type=Event::MOUSEPRESS;
+      e.button = bt;
+      e.x=ev->x();
+      e.y=ev->y();
+      mythread->push_event(e);
+    }
+
+    void mouseReleaseEvent(QMouseEvent* ev)
+    {
+      vl::EMouseButton bt = vl::NoButton;
+      switch(ev->button())
+      {
+      case Qt::LeftButton:  bt = vl::LeftButton; break;
+      case Qt::RightButton: bt = vl::RightButton; break;
+      case Qt::MidButton:   bt = vl::MiddleButton; break;
+      default:
+        bt = vl::UnknownButton; break;
+      }
+      Event e;
+      e.type=Event::MOUSERELEASE;
+      e.button = bt;
+      e.x=ev->x();
+      e.y=ev->y();
+      mythread->push_event(e);
+    }
+
+    void wheelEvent(QWheelEvent* ev)
+    {
+      Event e;
+      e.type=Event::WHEEL;
+      e.wheel = (double)ev->delta() / 120.0;
+      mythread->push_event(e);
+    }
+
+    void keyPressEvent(QKeyEvent*)
+    {
+      unsigned short unicode_ch = 0;
+      vl::EKey key = vl::Key_None;
+      //translateKeyEvent(ev, unicode_ch, key);
+      Event e;
+      e.type = Event::KEYPRESS;
+      e.key = key;
+      e.unicode_ch = unicode_ch;
+      mythread->push_event(e);
+    }
+
+    void keyReleaseEvent(QKeyEvent*)
+    {
+      unsigned short unicode_ch = 0;
+      vl::EKey key = vl::Key_None;
+      //translateKeyEvent(ev, unicode_ch, key);
+      Event e;
+      e.type = Event::KEYRELEASE;
+      e.key = key;
+      e.unicode_ch = unicode_ch;
+
+      mythread->push_event(e); 
     }
 
     Qt4ThreadedWidget() //(QWidget *parent=0, const char *name="no name" )
@@ -180,7 +319,6 @@ namespace vlQt4
     {
       return mythread->initQt4Widget(title, shareContext, x, y, width, height);
     }
-
   };
 }
 
