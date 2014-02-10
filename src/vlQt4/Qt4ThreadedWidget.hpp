@@ -58,10 +58,15 @@ namespace vlQt4
     struct MyThread : public QThread, vl::OpenGLContext {
       Qt4ThreadedWidget *_widget;
 
+      volatile int widget_width;
+      volatile int widget_height;
+
       QTime time;
 
       MyThread(Qt4ThreadedWidget* widget)
         : _widget(widget)
+        , widget_width(10)
+        , widget_height(10)
       { }
 
       void update(){
@@ -79,15 +84,25 @@ namespace vlQt4
       }
 
       void run() {
+        int width = 0;
+        int height = 0;
+
         Qt4ThreadedWidget *widget = _widget;
 
         makeCurrent();
 
         widget->init_vl();
 
-        dispatchResizeEvent(2000,1024);
+        //dispatchResizeEvent(2000,1024);
 
         for(;;){
+
+          if(widget_height!=height || widget_width!=width){
+            width = widget_width;
+            height = widget_height;
+            printf("resizing to %d/%d\n",width,height);
+            dispatchResizeEvent(width,height);
+          }
 
           //widget->swapBuffers();    
           
@@ -95,8 +110,8 @@ namespace vlQt4
 
           //printf("width/height: %d/%d\n",width(),height());
           
-          if(time.elapsed()>18)
-            printf("hepp %d\n",(int)time.elapsed());
+          //if(time.elapsed()>18)
+          //  printf("hepp %d\n",(int)time.elapsed());
           time.restart();
           //QApplication::processEvents(QEventLoop::AllEvents, 1);
         }
@@ -127,7 +142,10 @@ namespace vlQt4
     MyThread *mythread;
 
     void 	paintEvent ( QPaintEvent *  ){}
-    void 	resizeEvent ( QResizeEvent *  ) {}
+    void 	resizeEvent ( QResizeEvent *  ) {
+      mythread->widget_width = width();
+      mythread->widget_height = height();
+    }
     //virtual void 	updateGL () {}
     //virtual void 	paintGL () {}
     //virtual bool 	event ( QEvent * e ){ return true;    }

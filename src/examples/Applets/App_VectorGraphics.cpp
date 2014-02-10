@@ -293,18 +293,49 @@ public:
       vg->setFont(font);
       vg->setColor(vl::black);
       // note that the 2D text is not transformed by mRoseTransform but just follows an idea point transformed by mRoseTransform.
-      vl::Text *text = new vl::Text;
-      text->setText("Stencil buffer in action here!");
-      text->setMode(vl::Text2D);
-      /*
-      text->setInterlineSpacing(0.1f);
-      text->setKerningEnabled(false);
-      */
-      text->setAlignment(vl::AlignHCenter|vl::AlignVCenter);
-      vg->drawText(text)->setTransform(mRoseTransform.get());
+      //for(int n=-500;n<500;n+=20){
+      int n = 0;
+        vl::Text *text = new vl::Text;
+        vl::ref<vl::Transform> transform = new vl::Transform;
+        transform->translate(n,n,0);
+        text->setText("Stencil buffer in action here!");
+        text->setMode(vl::Text2D);
+        /*
+          text->setInterlineSpacing(0.1f);
+          text->setKerningEnabled(false);
+        */
+        text->setAlignment(vl::AlignHCenter|vl::AlignVCenter);
+        vg->drawText(text)->setTransform(transform.get());
+        rendering()->as<vl::Rendering>()->transform()->addChild(transform.get());
+        //}
+
+#if 1
+      for(int n=-500;n<500;n+=10){
+        vl::Text *text = new vl::Text;
+        vl::ref<vl::Transform> transform = new vl::Transform;
+        transform->translate(n*4,n*2,0);
+        text->setText("Stencil buffer in action here!");
+        text->setMode(vl::Text2D);
+        /*
+          text->setInterlineSpacing(0.1f);
+          text->setKerningEnabled(false);
+        */
+        text->setAlignment(vl::AlignHCenter|vl::AlignVCenter);
+        vg->drawText(text)->setTransform(transform.get());
+        rendering()->as<vl::Rendering>()->transform()->addChild(transform.get());
+      }
+#endif
+
 #else
       vg->drawText("Stencil buffer in action here!",vl::AlignHCenter|vl::AlignVCenter)->setTransform(mRoseTransform.get());
 #endif
+
+      vg->setColor(vl::fvec4(0.0,0.1,1,0.5f));
+      vg->translate(200,200);
+      vg->setLineWidth(5.0f);
+      vg->setLineStipple(vl::LineStipple_Solid);
+      vg->drawLine(0,0, 200,200);
+
 
       // ###### draws a rotated text ###### 
 
@@ -428,7 +459,7 @@ public:
 
     rendering()->as<vl::Rendering>()->camera()->setViewMatrix( mat );
 
-    counter+=1.77;
+    counter+=1.177;
     if(counter >= 800){
       counter = -500;
       //time.start();
