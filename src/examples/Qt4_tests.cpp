@@ -43,156 +43,41 @@ using namespace vlQt4;
 
 class MyQt4ThreadedWidget : public Qt4ThreadedWidget {
 public:
+  
+  ref<Applet> applet;
 
-  virtual void init_qt() {
-
-    /*
-      int x = 10;
-      int y = 10;
-      int width = 512;
-      int height= 512;
-    */
-
-    // setFormat(fmt) is marked as deprecated so we use this other method
-    QGLContext* glctx = new QGLContext(context()->format(), this);
-    QGLFormat fmt = context()->format();
-        
-    /* setup the OpenGL context format */
-    vl::OpenGLContextFormat info;
-    //info.setDoubleBuffer(true);
-    info.setDoubleBuffer(true);
-    info.setRGBABits( 8,8,8,8 );
-    info.setDepthBufferBits(24);
-    info.setFullscreen(false);
-    info.setMultisampleSamples(8);
-    info.setMultisample(true);
-    //info.setMultisample(false);
-    
-    // double buffer
-    fmt.setDoubleBuffer( info.doubleBuffer() );
-        
-    // color buffer
-    fmt.setRedBufferSize( info.rgbaBits().r() );
-    fmt.setGreenBufferSize( info.rgbaBits().g() );
-    fmt.setBlueBufferSize( info.rgbaBits().b() );
-    // setAlpha == true makes the create() function alway fail
-    // even if the returned format has the requested alpha channel
-    fmt.setAlphaBufferSize( info.rgbaBits().a() );
-    fmt.setAlpha( info.rgbaBits().a() != 0 );
-        
-    // accumulation buffer
-    int accum = vl::max( info.accumRGBABits().r(), info.accumRGBABits().g() );
-    accum = vl::max( accum, info.accumRGBABits().b() );
-    accum = vl::max( accum, info.accumRGBABits().a() );
-    fmt.setAccumBufferSize( accum );
-    fmt.setAccum( accum != 0 );
-        
-    // multisampling
-    if (info.multisample())
-      fmt.setSamples( info.multisampleSamples() );
-    fmt.setSampleBuffers( info.multisample() );
-        
-    // depth buffer
-    fmt.setDepthBufferSize( info.depthBufferBits() );
-    fmt.setDepth( info.depthBufferBits() != 0 );
-
-    // stencil buffer
-    fmt.setStencilBufferSize( info.stencilBufferBits() );
-    fmt.setStencil( info.stencilBufferBits() != 0 );
-        
-    // stereo
-    fmt.setStereo( info.stereo() );
-        
-    // swap interval / v-sync
-    fmt.setSwapInterval( info.vSync() ? 1 : 0 );
-        
-    glctx->setFormat(fmt);
-    // this function returns false when we request an alpha buffer
-    // even if the created context seem to have the alpha buffer
-    /*bool ok = */glctx->create(NULL);
-    setContext(glctx);
-
-#ifndef NDEBUG
-    printf("--------------------------------------------\n");
-    printf("REQUESTED OpenGL Format:\n");
-    printf("--------------------------------------------\n");
-    printf("rgba = %d %d %d %d\n", fmt.redBufferSize(), fmt.greenBufferSize(), fmt.blueBufferSize(), fmt.alphaBufferSize() );
-    printf("double buffer = %d\n", (int)fmt.doubleBuffer() );
-    printf("depth buffer size = %d\n", fmt.depthBufferSize() );
-    printf("depth buffer = %d\n", fmt.depth() );
-    printf("stencil buffer size = %d\n", fmt.stencilBufferSize() );
-    printf("stencil buffer = %d\n", fmt.stencil() );
-    printf("accum buffer size %d\n", fmt.accumBufferSize() );
-    printf("accum buffer %d\n", fmt.accum() );
-    printf("stereo = %d\n", (int)fmt.stereo() );
-    printf("swap interval = %d\n", fmt.swapInterval() );
-    printf("multisample = %d\n", (int)fmt.sampleBuffers() );
-    printf("multisample samples = %d\n", (int)fmt.samples() );
-
-    fmt = format();
-
-    printf("--------------------------------------------\n");
-    printf("OBTAINED OpenGL Format:\n");
-    printf("--------------------------------------------\n");
-    printf("rgba = %d %d %d %d\n", fmt.redBufferSize(), fmt.greenBufferSize(), fmt.blueBufferSize(), fmt.alphaBufferSize() );
-    printf("double buffer = %d\n", (int)fmt.doubleBuffer() );
-    printf("depth buffer size = %d\n", fmt.depthBufferSize() );
-    printf("depth buffer = %d\n", fmt.depth() );
-    printf("stencil buffer size = %d\n", fmt.stencilBufferSize() );
-    printf("stencil buffer = %d\n", fmt.stencil() );
-    printf("accum buffer size %d\n", fmt.accumBufferSize() );
-    printf("accum buffer %d\n", fmt.accum() );
-    printf("stereo = %d\n", (int)fmt.stereo() );
-    printf("swap interval = %d\n", fmt.swapInterval() );
-    printf("multisample = %d\n", (int)fmt.sampleBuffers() );
-    printf("multisample samples = %d\n", (int)fmt.samples() );
-    printf("--------------------------------------------\n");
-#endif
-
-    QGLWidget::setWindowState(QGLWidget::windowState() & (~Qt::WindowFullScreen));
-    //QGLWidget::setWindowState(QGLWidget::windowState() | Qt::WindowFullScreen);        
-  }
-
-  virtual void init_vl() {
-    mythread->initGLContext();
-    /* parse command line arguments */
-    //int   test = 42;
-    
-    
+  MyQt4ThreadedWidget(vl::OpenGLContextFormat vlFormat, QWidget *parent=0)
+    : Qt4ThreadedWidget(vlFormat, parent)
+  {
     /* create the applet to be run */
-    ref<Applet> applet = Create_App_VectorGraphics(); //new App_RotatingCube;
+    applet = Create_App_VectorGraphics(); //new App_RotatingCube;
     //ref<Applet> applet = new App_RotatingCube;
 
     applet->initialize();
 
-    /* create a native Qt4 window */
-    //ref<vlQt4::Qt4Widget> qt4_window = new vlQt4::Qt4Widget;
+  }
+
+  virtual void init_vl(vl::OpenGLContext *glContext) {
+    
+    glContext->initGLContext();
+
     /* bind the applet so it receives all the GUI events related to the OpenGLContext */
-    mythread->addEventListener(applet.get());
+    glContext->addEventListener(applet.get());
+
     /* target the window so we can render on it */
-    applet->rendering()->as<Rendering>()->renderer()->setFramebuffer( this->mythread->framebuffer() );
+    applet->rendering()->as<Rendering>()->renderer()->setFramebuffer(glContext->framebuffer() );
+
     /* black background */
     applet->rendering()->as<Rendering>()->camera()->viewport()->setClearColor( black );
+
     /* define the camera position and orientation */
     vec3 eye    = vec3(0,10,35); // camera position
     vec3 center = vec3(0,0,0);   // point the camera is looking at
     vec3 up     = vec3(0,1,0);   // up direction
     mat4 view_mat = mat4::getLookAt(eye, center, up);
     applet->rendering()->as<Rendering>()->camera()->setViewMatrix( view_mat );
-    /* Initialize the OpenGL context and window properties */
-
-    int x = 10;
-    int y = 10;
-    int width = 512;
-    int height= 512;
-    
 
     applet->setAppletName("hello");
-
-    /* Initialize the OpenGL context and window properties */
-    initQt4Widget( "hello2", NULL, x, y, width, height );
-
-//applet->initEvent();
   }
 };
 
@@ -203,17 +88,24 @@ int main(int argc, char *argv[])
 
   QApplication app(argc, argv);
 
-  /* init Visualization Library */
   VisualizationLibrary::init();
 
-  MyQt4ThreadedWidget widget;
-  widget.init_qt();
+  /* setup the OpenGL context format */
+  vl::OpenGLContextFormat vlFormat;
+  //vlFormat.setDoubleBuffer(true);
+  vlFormat.setDoubleBuffer(true);
+  vlFormat.setRGBABits( 8,8,8,8 );
+  vlFormat.setDepthBufferBits(24);
+  vlFormat.setFullscreen(false);
+  vlFormat.setMultisampleSamples(8);
+  vlFormat.setMultisample(true);
+  //vlFormat.setMultisample(false);
+
+  MyQt4ThreadedWidget widget(vlFormat);
+  widget.resize(1000,1000);
+
   widget.show();
-  QApplication::processEvents(QEventLoop::AllEvents, 30);
 
-  widget.start_thread();
-
-  //sleep(5);
 
   app.exec();
 

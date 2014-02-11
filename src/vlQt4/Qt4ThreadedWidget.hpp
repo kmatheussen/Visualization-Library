@@ -66,7 +66,8 @@ namespace vlQt4
         MOUSEMOVE,
         WHEEL,
         KEYPRESS,
-        KEYRELEASE
+        KEYRELEASE,
+        DESTROY
       } type;
       vl::EMouseButton button;
       int x;
@@ -94,9 +95,10 @@ namespace vlQt4
         : _widget(widget)
         , widget_width(10)
         , widget_height(10)
-      { }
+      {
+      }
 
-      void handle_events(){
+      bool handle_events(){
         QMutexLocker locker(&mutex);
 
         while (!queue.isEmpty()){
@@ -119,10 +121,15 @@ namespace vlQt4
           case Event::KEYRELEASE:
             dispatchKeyReleaseEvent(e.unicode_ch,e.key);
             break;
+          case Event::DESTROY:
+            printf("Calling destroy\n");
+            dispatchDestroyEvent();
+            return false;
           default:
             abort();
           }
         }
+        return true;
       }
 
       void push_event(Event e){
@@ -152,7 +159,7 @@ namespace vlQt4
 
         makeCurrent();
 
-        widget->init_vl();
+        widget->init_vl(this);
 
         //dispatchResizeEvent(2000,1024);
 
@@ -165,7 +172,8 @@ namespace vlQt4
             dispatchResizeEvent(width,height);
           }
 
-          handle_events();
+          if(handle_events()==false)
+            return;
 
           //widget->swapBuffers();    
           
@@ -178,27 +186,6 @@ namespace vlQt4
           time.restart();
           //QApplication::processEvents(QEventLoop::AllEvents, 1);
         }
-      }
-
-      bool initQt4Widget(const vl::String& title, const QGLContext* =0, int x=0, int y=0, int width=640, int height=480)
-      {
-        initGLContext();
-        //dispatchInitEvent();
-        dispatchResizeEvent(width, height);
-
-        framebuffer()->setWidth(width);
-        framebuffer()->setHeight(height);
-        
-
-        setWindowTitle(title);
-        printf("move to %d %d %d %d\n",x,y,width,height);
-        //move(x,y);
-        //resize(width,height);
-        
-        //if (info.fullscreen())
-        //  setFullscreen(true);
-        
-        return true;
       }
     };
 
@@ -300,31 +287,131 @@ namespace vlQt4
       return fmt;
     }
 
-    Qt4ThreadedWidget() //(QWidget *parent=0, const char *name="no name" )
-      //: QGLWidget //(desiredFormat())
-      : mythread(new MyThread(this))
-      {
-      }
+    Qt4ThreadedWidget(vl::OpenGLContextFormat vlFormat, QWidget *parent=0)
+      : QGLWidget(parent)
+      , mythread(new MyThread(this))
+    {
+      init_qt(vlFormat);
+    }
+
 
 
     ~Qt4ThreadedWidget()
     {
-      //dispatchDestroyEvent();
+      Event e;
+      e.type = Event::DESTROY;
+
+      mythread->push_event(e); 
+      printf("waiting\n");
+      mythread->wait();
+      printf("got it\n");
     }
 
 
-    virtual void init_qt()  = 0;
-    virtual void init_vl()  = 0;
+    virtual void init_vl(vl::OpenGLContext *glContext)  = 0;
 
     
-    void start_thread(){
+    virtual void init_qt(vl::OpenGLContextFormat vlFormat) {
+
+      /*
+        int x = 10;
+        int y = 10;
+        int width = 512;
+        int height= 512;
+      */
+
+      // setFormat(qtFormat) is marked as deprecated so we use this other method
+      QGLContext* glctx = new QGLContext(context()->format(), this);
+      QGLFormat qtFormat = context()->format();
+            
+      // double buffer
+      qtFormat.setDoubleBuffer( vlFormat.doubleBuffer() );
+        
+      // color buffer
+      qtFormat.setRedBufferSize( vlFormat.rgbaBits().r() );
+      qtFormat.setGreenBufferSize( vlFormat.rgbaBits().g() );
+      qtFormat.setBlueBufferSize( vlFormat.rgbaBits().b() );
+      // setAlpha == true makes the create() function alway fail
+      // even if the returned format has the requested alpha channel
+      qtFormat.setAlphaBufferSize( vlFormat.rgbaBits().a() );
+      qtFormat.setAlpha( vlFormat.rgbaBits().a() != 0 );
+        
+      // accumulation buffer
+      int accum = vl::max( vlFormat.accumRGBABits().r(), vlFormat.accumRGBABits().g() );
+      accum = vl::max( accum, vlFormat.accumRGBABits().b() );
+      accum = vl::max( accum, vlFormat.accumRGBABits().a() );
+      qtFormat.setAccumBufferSize( accum );
+      qtFormat.setAccum( accum != 0 );
+        
+      // multisampling
+      if (vlFormat.multisample())
+        qtFormat.setSamples( vlFormat.multisampleSamples() );
+      qtFormat.setSampleBuffers( vlFormat.multisample() );
+        
+      // depth buffer
+      qtFormat.setDepthBufferSize( vlFormat.depthBufferBits() );
+      qtFormat.setDepth( vlFormat.depthBufferBits() != 0 );
+
+      // stencil buffer
+      qtFormat.setStencilBufferSize( vlFormat.stencilBufferBits() );
+      qtFormat.setStencil( vlFormat.stencilBufferBits() != 0 );
+        
+      // stereo
+      qtFormat.setStereo( vlFormat.stereo() );
+        
+      // swap interval / v-sync
+      qtFormat.setSwapInterval( vlFormat.vSync() ? 1 : 0 );
+        
+      glctx->setFormat(qtFormat);
+      // this function returns false when we request an alpha buffer
+      // even if the created context seem to have the alpha buffer
+      /*bool ok = */glctx->create(NULL);
+      setContext(glctx);
+
+#ifndef NDEBUG
+      printf("--------------------------------------------\n");
+      printf("REQUESTED OpenGL Format:\n");
+      printf("--------------------------------------------\n");
+      printf("rgba = %d %d %d %d\n", qtFormat.redBufferSize(), qtFormat.greenBufferSize(), qtFormat.blueBufferSize(), qtFormat.alphaBufferSize() );
+      printf("double buffer = %d\n", (int)qtFormat.doubleBuffer() );
+      printf("depth buffer size = %d\n", qtFormat.depthBufferSize() );
+      printf("depth buffer = %d\n", qtFormat.depth() );
+      printf("stencil buffer size = %d\n", qtFormat.stencilBufferSize() );
+      printf("stencil buffer = %d\n", qtFormat.stencil() );
+      printf("accum buffer size %d\n", qtFormat.accumBufferSize() );
+      printf("accum buffer %d\n", qtFormat.accum() );
+      printf("stereo = %d\n", (int)qtFormat.stereo() );
+      printf("swap interval = %d\n", qtFormat.swapInterval() );
+      printf("multisample = %d\n", (int)qtFormat.sampleBuffers() );
+      printf("multisample samples = %d\n", (int)qtFormat.samples() );
+
+      qtFormat = format();
+
+      printf("--------------------------------------------\n");
+      printf("OBTAINED OpenGL Format:\n");
+      printf("--------------------------------------------\n");
+      printf("rgba = %d %d %d %d\n", qtFormat.redBufferSize(), qtFormat.greenBufferSize(), qtFormat.blueBufferSize(), qtFormat.alphaBufferSize() );
+      printf("double buffer = %d\n", (int)qtFormat.doubleBuffer() );
+      printf("depth buffer size = %d\n", qtFormat.depthBufferSize() );
+      printf("depth buffer = %d\n", qtFormat.depth() );
+      printf("stencil buffer size = %d\n", qtFormat.stencilBufferSize() );
+      printf("stencil buffer = %d\n", qtFormat.stencil() );
+      printf("accum buffer size %d\n", qtFormat.accumBufferSize() );
+      printf("accum buffer %d\n", qtFormat.accum() );
+      printf("stereo = %d\n", (int)qtFormat.stereo() );
+      printf("swap interval = %d\n", qtFormat.swapInterval() );
+      printf("multisample = %d\n", (int)qtFormat.sampleBuffers() );
+      printf("multisample samples = %d\n", (int)qtFormat.samples() );
+      printf("--------------------------------------------\n");
+#endif
+
+      if(vlFormat.fullscreen())
+        QGLWidget::setWindowState(QGLWidget::windowState() | Qt::WindowFullScreen);        
+      else
+        QGLWidget::setWindowState(QGLWidget::windowState() & (~Qt::WindowFullScreen));
+
+
       mythread->start();
-    }
-
-
-    bool initQt4Widget(const vl::String& title, const QGLContext* shareContext=0, int x=0, int y=0, int width=640, int height=480)
-    {
-      return mythread->initQt4Widget(title, shareContext, x, y, width, height);
     }
   };
 }

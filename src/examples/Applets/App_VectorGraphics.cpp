@@ -29,6 +29,7 @@
 /*                                                                                    */
 /**************************************************************************************/
 
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "BaseDemo.hpp"
@@ -41,11 +42,25 @@
 #include <vlGraphics/FontManager.hpp>
 #include <vlGraphics/Text.hpp>
 
+static inline float scale(float x, float x1, float x2, float y1, float y2){
+  return y1 + ( ((x-x1)*(y2-y1))
+                /
+                (x2-x1)
+                );
+}
+
+static float rnd(float min, float max){
+  return scale(rand(), 0, RAND_MAX, min, max);
+}
+
 class App_VectorGraphics: public BaseDemo
 {
 public:
   virtual void initEvent()
+  //virtual void initialize()
   {
+    printf("******************************** HEPPPPPPPPPPPPPPPP \n");
+
     vl::Log::notify(appletInfo());
 
     // disable trackball and ghost camera manipulator
@@ -285,6 +300,8 @@ public:
       // finish with the stencil
       vg->setStencilTestEnabled(false);
 
+      int ymax = -1500;
+
 #if 1
       // render text following our rotating rose
       vl::Font *font = vl::defFontManager()->acquireFont("/font/bitstream-vera/Vera.ttf", 14);
@@ -310,33 +327,50 @@ public:
         //}
 
 #if 1
-      for(int n=-500;n<500;n+=10){
-        vl::Text *text = new vl::Text;
-        vl::ref<vl::Transform> transform = new vl::Transform;
-        transform->translate(n*4,n*2,0);
-        text->setText("Stencil buffer in action here!");
-        text->setMode(vl::Text2D);
+        for(int n=0; n< 300 ; n++){
+          vl::Text *text = new vl::Text;
+          vl::ref<vl::Transform> transform = new vl::Transform;
+          transform->translate(rnd(-100,1600),rnd(ymax,1000),0);
+          text->setText("C#3"); //Stencil buffer in action here!");
+          text->setMode(vl::Text2D);
         /*
           text->setInterlineSpacing(0.1f);
           text->setKerningEnabled(false);
         */
-        text->setAlignment(vl::AlignHCenter|vl::AlignVCenter);
-        vg->drawText(text)->setTransform(transform.get());
-        rendering()->as<vl::Rendering>()->transform()->addChild(transform.get());
-      }
+          text->setAlignment(vl::AlignHCenter|vl::AlignVCenter);
+          vg->drawText(text)->setTransform(transform.get());
+          rendering()->as<vl::Rendering>()->transform()->addChild(transform.get());
+        }
 #endif
 
 #else
       vg->drawText("Stencil buffer in action here!",vl::AlignHCenter|vl::AlignVCenter)->setTransform(mRoseTransform.get());
 #endif
 
-      vg->setColor(vl::fvec4(0.0,0.1,1,0.5f));
-      vg->translate(200,200);
-      vg->setLineWidth(5.0f);
-      vg->setLineStipple(vl::LineStipple_Solid);
-      vg->drawLine(0,0, 200,200);
+      /* my experimental line */
+      for(int n=0; n< 100 ; n++){
+#if 1
+        vl::ref<vl::Image> spectrum = vl::makeColorSpectrum(16, vl::blue,  vl::green);
+        vg->setColor(vl::fvec4(1,1,1,0.75f)); // transparent whitevl::white);
+        vg->setImage(spectrum.get());
+#else
+        vg->setColor(vl::blue);
+#endif
+#if 1   
+        //vg->translate(50,50,0);
+        float x = rnd(-100,1600);
+        float y = rnd(ymax,1000);
+        vg->fillQuad(x,y,x+600,y+100);
+#else
+        //vg->translate(rnd(-100,1600),rnd(-100,1000),0);
+        vg->setLineWidth(1.5f);
+        vg->setLineStipple(vl::LineStipple_Solid);
+        vg->drawLine(rnd(-100,1600),rnd(ymax,1000),rnd(-100,1600),rnd(ymax,1000));
+        //vg->drawLine(0,0, -200,200);
+#endif
+      }
 
-
+      
       // ###### draws a rotated text ###### 
 
       vg->setColor(vl::black);
@@ -463,6 +497,10 @@ public:
     if(counter >= 800){
       counter = -500;
       //time.start();
+      //updateScene();
+      //openglContext()->update();
+      rendering()->as<vl::Rendering>()->sceneManagers()->clear();
+      initEvent();
     }
 
     //printf("pos: %d\n",pos);
