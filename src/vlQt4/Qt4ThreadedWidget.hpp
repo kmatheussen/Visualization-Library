@@ -294,7 +294,14 @@ namespace vlQt4
       mythread->push_event(e); 
     }
 
+    QGLFormat desiredFormat(){
+      QGLFormat fmt;
+      fmt.setSwapInterval(1);
+      return fmt;
+    }
+
     Qt4ThreadedWidget() //(QWidget *parent=0, const char *name="no name" )
+      //: QGLWidget //(desiredFormat())
       : mythread(new MyThread(this))
       {
       }

@@ -41,58 +41,17 @@
 using namespace vl;
 using namespace vlQt4;
 
-class MyQt4ThreadedWidget : public Qt4ThreadedWidget, public TestBattery {
+class MyQt4ThreadedWidget : public Qt4ThreadedWidget {
 public:
 
-  int _test_num;
-
-  MyQt4ThreadedWidget(int test_num)
-    : _test_num(test_num)
-  {}
-
-  void runGUI(const vl::String& title, BaseDemo* applet, vl::OpenGLContextFormat format, int x, int y, int width, int height, vl::fvec4 bk_color, vl::vec3 eye, vl::vec3 center)
-  {
-    setupApplet(applet, mythread, bk_color, eye, center);
-
-    /* create the applet to be run */
-    //ref<Applet> applet = Create_App_VectorGraphics(); //new App_RotatingCube;
-    //ref<Applet> applet = new App_RotatingCube;
-
-    //applet->initialize();
-
-    /* create a native Qt4 window */
-    //ref<vlQt4::Qt4Widget> qt4_window = new vlQt4::Qt4Widget;
-    /* bind the applet so it receives all the GUI events related to the OpenGLContext */
-    mythread->addEventListener(applet);
-
-#if 0
-    /* target the window so we can render on it */
-    applet->rendering()->as<Rendering>()->renderer()->setFramebuffer( this->mythread->framebuffer() );
-    /* black background */
-    applet->rendering()->as<Rendering>()->camera()->viewport()->setClearColor( black );
-    /* define the camera position and orientation */
-    vec3 eye    = vec3(0,10,35); // camera position
-    vec3 center = vec3(0,0,0);   // point the camera is looking at
-    vec3 up     = vec3(0,1,0);   // up direction
-    mat4 view_mat = mat4::getLookAt(eye, center, up);
-    applet->rendering()->as<Rendering>()->camera()->setViewMatrix( view_mat );
-    /* Initialize the OpenGL context and window properties */
-
-    int x = 10;
-    int y = 10;
-    int width = 512;
-    int height= 512;
-    
-
-    applet->setAppletName("hello");
-#endif
-
-    /* Initialize the OpenGL context and window properties */
-    initQt4Widget( "hello2", NULL, x, y, width, height );
-
-  }
-
   virtual void init_qt() {
+
+    /*
+      int x = 10;
+      int y = 10;
+      int width = 512;
+      int height= 512;
+    */
 
     // setFormat(fmt) is marked as deprecated so we use this other method
     QGLContext* glctx = new QGLContext(context()->format(), this);
@@ -198,9 +157,40 @@ public:
     mythread->initGLContext();
     /* parse command line arguments */
     //int   test = 42;
-        
-    vl::OpenGLContextFormat format;
-    run(_test_num, "nope", format);
+    
+    
+    /* create the applet to be run */
+    ref<Applet> applet = Create_App_VectorGraphics(); //new App_RotatingCube;
+    //ref<Applet> applet = new App_RotatingCube;
+
+    applet->initialize();
+
+    /* create a native Qt4 window */
+    //ref<vlQt4::Qt4Widget> qt4_window = new vlQt4::Qt4Widget;
+    /* bind the applet so it receives all the GUI events related to the OpenGLContext */
+    mythread->addEventListener(applet.get());
+    /* target the window so we can render on it */
+    applet->rendering()->as<Rendering>()->renderer()->setFramebuffer( this->mythread->framebuffer() );
+    /* black background */
+    applet->rendering()->as<Rendering>()->camera()->viewport()->setClearColor( black );
+    /* define the camera position and orientation */
+    vec3 eye    = vec3(0,10,35); // camera position
+    vec3 center = vec3(0,0,0);   // point the camera is looking at
+    vec3 up     = vec3(0,1,0);   // up direction
+    mat4 view_mat = mat4::getLookAt(eye, center, up);
+    applet->rendering()->as<Rendering>()->camera()->setViewMatrix( view_mat );
+    /* Initialize the OpenGL context and window properties */
+
+    int x = 10;
+    int y = 10;
+    int width = 512;
+    int height= 512;
+    
+
+    applet->setAppletName("hello");
+
+    /* Initialize the OpenGL context and window properties */
+    initQt4Widget( "hello2", NULL, x, y, width, height );
 
 //applet->initEvent();
   }
@@ -214,14 +204,9 @@ int main(int argc, char *argv[])
   QApplication app(argc, argv);
 
   /* init Visualization Library */
-  //VisualizationLibrary::init();
+  VisualizationLibrary::init();
 
-  if(argc==1){
-    printf("usage: %s <test-num>\n",argv[0]);
-    exit(-1);
-  }
-
-  MyQt4ThreadedWidget widget(atoi(argv[1]));
+  MyQt4ThreadedWidget widget;
   widget.init_qt();
   widget.show();
   QApplication::processEvents(QEventLoop::AllEvents, 30);
