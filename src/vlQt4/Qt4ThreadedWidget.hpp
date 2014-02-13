@@ -163,7 +163,7 @@ namespace vlQt4
 
         //dispatchResizeEvent(2000,1024);
 
-        for(;;){
+        while(handle_events()==true){
 
           if(widget_height!=height || widget_width!=width){
             width = widget_width;
@@ -171,9 +171,6 @@ namespace vlQt4
             printf("resizing to %d/%d\n",width,height);
             dispatchResizeEvent(width,height);
           }
-
-          if(handle_events()==false)
-            return;
 
           //widget->swapBuffers();    
           

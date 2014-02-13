@@ -54,7 +54,7 @@ namespace vl
   public:
     Text(): mColor(1,1,1,1), mBorderColor(0,0,0,1), mBackgroundColor(1,1,1,1), mOutlineColor(0,0,0,1), mShadowColor(0,0,0,0.5f), mShadowVector(2,-2), 
       mInterlineSpacing(5), mAlignment(AlignBottom|AlignLeft), mViewportAlignment(AlignBottom|AlignLeft), mMargin(5), mMode(Text2D), mLayout(LeftToRightText), mTextAlignment(TextAlignLeft), 
-      mBorderEnabled(false), mBackgroundEnabled(false), mOutlineEnabled(false), mShadowEnabled(false), mKerningEnabled(true) 
+      mBorderEnabled(false), mBackgroundEnabled(false), mOutlineEnabled(false), mShadowEnabled(false), mClampX(true), mClampY(true), mKerningEnabled(true) 
     {
       VL_DEBUG_SET_OBJECT_NAME()
     }
@@ -123,6 +123,12 @@ namespace vl
     bool shadowEnabled() const { return mShadowEnabled; }
     void setShadowEnabled(bool shadow) { mShadowEnabled = shadow; }
 
+    bool clampX() const { return mClampX; }
+    void setClampX(bool clamp) { mClampX = clamp; }
+
+    bool clampY() const { return mClampY; }
+    void setClampY(bool clamp) { mClampY = clamp; }
+
     virtual void render_Implementation(const Actor* actor, const Shader* shader, const Camera* camera, OpenGLContext* gl_context) const;
     void computeBounds_Implementation() { setBoundingBox(AABB()); setBoundingSphere(Sphere()); }
     AABB boundingRect() const;
@@ -167,6 +173,8 @@ namespace vl
     bool mBackgroundEnabled;
     bool mOutlineEnabled;
     bool mShadowEnabled;
+    bool mClampX;
+    bool mClampY;
     bool mKerningEnabled;
   };
 }

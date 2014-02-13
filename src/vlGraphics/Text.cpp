@@ -491,6 +491,12 @@ void Text::renderText(const Actor* actor, const Camera* camera, const fvec4& col
           v.x() -= viewport[0];
           v.y() -= viewport[1];
 
+          if (mClampX)
+            v.x() = (float)int(v.x());
+
+          if (mClampY)
+            v.y() = (float)int(v.y());
+
           //v.x() = (float)int(v.x());
           //v.y() = (float)int(v.y());
 
@@ -980,8 +986,11 @@ AABB Text::boundingRectTransformed(vec3& a, vec3& b, vec3& c, vec3& d, const Cam
       v.x() -= viewport[0];
       v.y() -= viewport[1];
 
-      //v.x() = (float)int(v.x());
-      //v.y() = (float)int(v.y());
+      if (mClampX)
+        v.x() = (float)int(v.x());
+
+      if (mClampY)
+        v.y() = (float)int(v.y());
 
       a += v.xyz();
       b += v.xyz();
