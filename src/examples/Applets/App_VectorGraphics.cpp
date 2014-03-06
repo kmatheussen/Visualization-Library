@@ -333,6 +333,7 @@ public:
           transform->translate(rnd(-100,1600),rnd(ymax,1000),0);
           text->setText("C#3"); //Stencil buffer in action here!");
           text->setMode(vl::Text2D);
+          text->setClampY(false);
         /*
           text->setInterlineSpacing(0.1f);
           text->setKerningEnabled(false);
