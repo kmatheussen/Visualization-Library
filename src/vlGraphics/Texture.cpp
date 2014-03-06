@@ -441,8 +441,10 @@ Texture::Texture(const Image* image, ETextureFormat format, bool mipmaps , bool 
     if( !createTexture() )
       Log::error("Texture constructor failed!\n");
   }
-  else
+  else {
     Log::bug("Texture constructor called with an invalid Image!\n");
+    //abort();
+  }
 }
 //-----------------------------------------------------------------------------
 Texture::Texture(const String& image_path, ETextureFormat format, bool mipmaps , bool border)

@@ -110,6 +110,18 @@ Actor* VectorGraphics::fillPolygon(const std::vector<dvec2>& poly)
   return addActor( new Actor(geom.get(), currentEffect(), NULL) );
 }
 //-----------------------------------------------------------------------------
+Actor* VectorGraphics::fillPolygons(const std::vector< std::vector<dvec2> >& polys)
+{
+  // fill the vertex position array
+  ref<Geometry> geom = prepareGeometryPolysToTriangles(polys);
+  // generate texture coords
+  generatePlanarTexCoords(geom.get(), polys.at(0)); // todo.
+  // issue the primitive
+  geom->drawCalls()->push_back( new DrawArrays(PT_TRIANGLES, 0, (int)geom->vertexArray()->size()) );
+  // add the actor
+  return addActor( new Actor(geom.get(), currentEffect(), NULL) );
+}
+//-----------------------------------------------------------------------------
 Actor* VectorGraphics::fillTriangles(const std::vector<dvec2>& triangles)
 {
   // fill the vertex position array
@@ -146,6 +158,38 @@ Actor* VectorGraphics::fillTriangleStrip(const std::vector<dvec2>& strip)
   return addActor( new Actor(geom.get(), currentEffect(), NULL) );
 }
 //-----------------------------------------------------------------------------
+Actor* VectorGraphics::fillTriangleStrips(const std::vector< std::vector<dvec2> >& strips)
+{
+  std::vector<dvec2> all_strips;
+
+  for(unsigned int i=0;i<strips.size();i++){
+    const std::vector<dvec2> strip = strips[i];
+    for(unsigned int i2=0;i2<strip.size();i2++)
+      all_strips.push_back(strip[i2]);
+  }
+
+  // fill the vertex position array
+  ref<Geometry> geom = prepareGeometry(all_strips);
+
+  // generate texture coords (not supported)
+  //generatePlanarTexCoords(geom.get(), strip);
+
+  // issue the primitive
+#if 0
+  int start = 0;
+
+  for(unsigned int i=0;i<strips.size();i++){
+    const std::vector<dvec2> strip = strips[i];
+    geom->drawCalls()->push_back( new DrawArrays(PT_TRIANGLE_STRIP, start, (int)strip.size()) );
+    start += strip.size();
+  }
+#endif
+  geom->drawCalls()->push_back( new DrawArrays(PT_TRIANGLE_STRIP, 0, (int)all_strips.size()) );
+
+  // add the actor
+  return addActor( new Actor(geom.get(), currentEffect(), NULL) );
+}
+//-----------------------------------------------------------------------------
 Actor* VectorGraphics::fillQuads(const std::vector<dvec2>& quads)
 {
   // fill the vertex position array
@@ -154,6 +198,7 @@ Actor* VectorGraphics::fillQuads(const std::vector<dvec2>& quads)
   generateQuadsTexCoords(geom.get(), quads);
   // issue the primitive
   geom->drawCalls()->push_back( new DrawArrays(PT_QUADS, 0, (int)quads.size()) );
+  //geom->drawCalls()->push_back( new DrawArrays(PT_TRIANGLES, 0, (int)quads.size()) );
   // add the actor
   return addActor( new Actor(geom.get(), currentEffect(), NULL) );
 }
@@ -663,6 +708,37 @@ ref<Geometry> VectorGraphics::prepareGeometryPolyToTriangles(const std::vector<d
     pos_array->at(itri+1) = (fvec3)(matrix() * dvec3(ln[i+1].x(), ln[i+1].y(), 0));
     pos_array->at(itri+2) = (fvec3)(matrix() * dvec3(ln[i+2].x(), ln[i+2].y(), 0));
   }
+  // generate geometry
+  ref< Geometry > geom = new Geometry;
+  geom->setVertexArray(pos_array.get());
+  return geom;
+}
+//-----------------------------------------------------------------------------
+ref<Geometry> VectorGraphics::prepareGeometryPolysToTriangles(const std::vector< std::vector<dvec2> >& lns)
+{
+  // transform the lines
+  ref<ArrayFloat3> pos_array = new ArrayFloat3;
+  int size = 0;
+ 
+  for(unsigned i_lns=0; i_lns<lns.size(); ++i_lns){
+    std::vector<dvec2> ln = lns[i_lns];
+    size += ( (ln.size()-2) * 3);
+  }
+
+  pos_array->resize( size );
+
+  for(unsigned i_lns=0,itri=0; i_lns<lns.size(); ++i_lns){
+    std::vector<dvec2> ln = lns[i_lns];
+
+    // transform done using high precision
+    for(unsigned i=0; i<ln.size()-2; ++i, itri+=3)
+      {
+        pos_array->at(itri+0) = (fvec3)(matrix() * dvec3(ln[0].x(), ln[0].y(), 0));
+        pos_array->at(itri+1) = (fvec3)(matrix() * dvec3(ln[i+1].x(), ln[i+1].y(), 0));
+        pos_array->at(itri+2) = (fvec3)(matrix() * dvec3(ln[i+2].x(), ln[i+2].y(), 0));
+      }
+  }
+
   // generate geometry
   ref< Geometry > geom = new Geometry;
   geom->setVertexArray(pos_array.get());
