@@ -99,10 +99,12 @@ namespace vlQt4
       }
 
       bool handle_events(){
-        QMutexLocker locker(&mutex);
+        mutex.lock();
 
         while (!queue.isEmpty()){
           Event e = queue.dequeue();
+          mutex.unlock();
+
           switch(e.type){
           case Event::MOUSEPRESS:
             dispatchMouseDownEvent(e.button, e.x, e.y);
@@ -128,7 +130,12 @@ namespace vlQt4
           default:
             abort();
           }
+
+          mutex.lock();
         }
+
+        mutex.unlock();
+
         return true;
       }
 
@@ -295,15 +302,20 @@ namespace vlQt4
 
     ~Qt4ThreadedWidget()
     {
-      Event e;
-      e.type = Event::DESTROY;
-
-      mythread->push_event(e); 
-      printf("waiting\n");
-      mythread->wait();
-      printf("got it\n");
+      stop();
     }
 
+    void stop(){
+      if (mythread->isRunning()) {
+        Event e;
+        e.type = Event::DESTROY;
+        
+        mythread->push_event(e); 
+        printf("waiting\n");
+        mythread->wait();
+        printf("got it\n");
+      }
+    }
 
     virtual void init_vl(vl::OpenGLContext *glContext)  = 0;
 

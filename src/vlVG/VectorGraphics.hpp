@@ -347,6 +347,9 @@ namespace vl
     //! Renders a convex polygon whose corners are defined by 'poly'
     Actor* fillPolygon(const std::vector<dvec2>& poly);
 
+    //! Renders a set of convex polygon whose corners are defined by the elements in 'polys'
+    Actor* fillPolygons(const std::vector< std::vector<dvec2> >& polys);
+
     //! Renders a set of triangles. The 'triangles' parameters must contain N triplets of dvec2. Each triplet defines a triangle.
     Actor* fillTriangles(const std::vector<dvec2>& triangles);
 
@@ -650,7 +653,8 @@ namespace vl
     ref<Geometry> prepareGeometry(const std::vector<dvec2>& ln);
 
     ref<Geometry> prepareGeometryPolyToTriangles(const std::vector<dvec2>& ln);
-  
+    ref<Geometry> prepareGeometryPolysToTriangles(const std::vector< std::vector<dvec2> >& lns);
+
     Scissor* resolveScissor(int x, int y, int width, int height);
 
     Texture* resolveTexture(const Image* image);

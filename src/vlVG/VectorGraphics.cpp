@@ -110,6 +110,31 @@ Actor* VectorGraphics::fillPolygon(const std::vector<dvec2>& poly)
   return addActor( new Actor(geom.get(), currentEffect(), NULL) );
 }
 //-----------------------------------------------------------------------------
+Actor* VectorGraphics::fillPolygons(const std::vector< std::vector<dvec2> >& polys)
+{
+  // fill the vertex position array
+  ref<Geometry> geom = prepareGeometryPolysToTriangles(polys);
+  // generate texture coords
+
+#if 0
+  std::vector<dvec2> polyss;
+  for(unsigned i = 0 ; i < polys.size(); i++){
+    for(unsigned int i2 = 0 ; i2 < polys[i].size() ; i++){
+      polyss.push_back(polys[i][i2]);
+    }
+  }
+  generatePlanarTexCoords(geom.get(), polyss);
+#else
+  for(unsigned i = 0 ; i < polys.size(); i++)
+    generatePlanarTexCoords(geom.get(), polys.at(i));
+#endif
+
+  // issue the primitive
+  geom->drawCalls()->push_back( new DrawArrays(PT_TRIANGLES, 0, (int)geom->vertexArray()->size()) );
+  // add the actor
+  return addActor( new Actor(geom.get(), currentEffect(), NULL) );
+}
+//-----------------------------------------------------------------------------
 Actor* VectorGraphics::fillTriangles(const std::vector<dvec2>& triangles)
 {
   // fill the vertex position array
@@ -154,6 +179,7 @@ Actor* VectorGraphics::fillQuads(const std::vector<dvec2>& quads)
   generateQuadsTexCoords(geom.get(), quads);
   // issue the primitive
   geom->drawCalls()->push_back( new DrawArrays(PT_QUADS, 0, (int)quads.size()) );
+  //geom->drawCalls()->push_back( new DrawArrays(PT_TRIANGLES, 0, (int)quads.size()) );
   // add the actor
   return addActor( new Actor(geom.get(), currentEffect(), NULL) );
 }
@@ -663,6 +689,37 @@ ref<Geometry> VectorGraphics::prepareGeometryPolyToTriangles(const std::vector<d
     pos_array->at(itri+1) = (fvec3)(matrix() * dvec3(ln[i+1].x(), ln[i+1].y(), 0));
     pos_array->at(itri+2) = (fvec3)(matrix() * dvec3(ln[i+2].x(), ln[i+2].y(), 0));
   }
+  // generate geometry
+  ref< Geometry > geom = new Geometry;
+  geom->setVertexArray(pos_array.get());
+  return geom;
+}
+//-----------------------------------------------------------------------------
+ref<Geometry> VectorGraphics::prepareGeometryPolysToTriangles(const std::vector< std::vector<dvec2> >& lns)
+{
+  // transform the lines
+  ref<ArrayFloat3> pos_array = new ArrayFloat3;
+  int size = 0;
+ 
+  for(unsigned i_lns=0; i_lns<lns.size(); ++i_lns){
+    std::vector<dvec2> ln = lns[i_lns];
+    size += ( (ln.size()-2) * 3);
+  }
+
+  pos_array->resize( size );
+
+  for(unsigned i_lns=0,itri=0; i_lns<lns.size(); ++i_lns){
+    std::vector<dvec2> ln = lns[i_lns];
+
+    // transform done using high precision
+    for(unsigned i=0; i<ln.size()-2; ++i, itri+=3)
+      {
+        pos_array->at(itri+0) = (fvec3)(matrix() * dvec3(ln[0].x(), ln[0].y(), 0));
+        pos_array->at(itri+1) = (fvec3)(matrix() * dvec3(ln[i+1].x(), ln[i+1].y(), 0));
+        pos_array->at(itri+2) = (fvec3)(matrix() * dvec3(ln[i+2].x(), ln[i+2].y(), 0));
+      }
+  }
+
   // generate geometry
   ref< Geometry > geom = new Geometry;
   geom->setVertexArray(pos_array.get());
