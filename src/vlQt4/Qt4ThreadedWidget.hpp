@@ -190,6 +190,8 @@ namespace vlQt4
           time.restart();
           //QApplication::processEvents(QEventLoop::AllEvents, 1);
         }
+
+        _widget->doneCurrent();
       }
     };
 
@@ -329,8 +331,15 @@ namespace vlQt4
         int height= 512;
       */
 
+      // setContext is marked as deprecated in Qt5, so it might make sense setting it to 1.
+#define USE_CUSTOM_CONTEXT 0
+
       // setFormat(qtFormat) is marked as deprecated so we use this other method
+      //QGLContext* glctx = new QGLContext(context()->format(), this);
+#if USE_CUSTOM_CONTEXT
       QGLContext* glctx = new QGLContext(context()->format(), this);
+#endif
+
       QGLFormat qtFormat = context()->format();
             
       // double buffer
@@ -371,11 +380,17 @@ namespace vlQt4
       // swap interval / v-sync
       qtFormat.setSwapInterval( vlFormat.vSync() ? 1 : 0 );
         
+#if USE_CUSTOM_CONTEXT
       glctx->setFormat(qtFormat);
+
       // this function returns false when we request an alpha buffer
       // even if the created context seem to have the alpha buffer
       /*bool ok = */glctx->create(NULL);
       setContext(glctx);
+#else
+      setFormat(qtFormat);
+#endif
+
 
 #ifndef NDEBUG
       printf("--------------------------------------------\n");
@@ -419,6 +434,8 @@ namespace vlQt4
       else
         QGLWidget::setWindowState(QGLWidget::windowState() & (~Qt::WindowFullScreen));
 
+
+      doneCurrent();
 
       mythread->start();
     }
