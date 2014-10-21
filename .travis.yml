@@ -1,0 +1,13 @@
+language: cpp
+compiler:
+  - gcc
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq cmake qt5-default
+  
+script: mkdir build && cd build && cmake .. -DWITH_SERVER=1 && make
+notifications:
+   email:
+     - vkocherizhkin@gmail.com
+   on_success: change
+   on_failure: always
