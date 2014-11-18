@@ -226,9 +226,11 @@ namespace vl
   
   inline void VL_glClientActiveTexture(GLenum texture)
   {
+#ifdef GL_VERSION_1_4_DEPRECATED
     if(glClientActiveTexture)
       glClientActiveTexture(texture);
     else
+#endif
     if (glClientActiveTextureARB)
       glClientActiveTextureARB(texture);
     else
