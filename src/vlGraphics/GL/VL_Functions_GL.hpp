@@ -124,9 +124,11 @@ namespace vl
   
   inline void VL_glSecondaryColor3f(float r, float g, float b)
   {
+#ifdef GL_VERSION_1_4_DEPRECATED
     if(glSecondaryColor3f)
       glSecondaryColor3f(r,g,b);
     else
+#endif
     if(glSecondaryColor3fEXT)
       glSecondaryColor3fEXT(r,g,b);
     else
@@ -135,9 +137,11 @@ namespace vl
 
   inline void VL_glSecondaryColorPointer( GLint size, GLenum type, GLsizei stride, const GLvoid* pointer)
   {
+#ifdef GL_VERSION_1_4_DEPRECATED
     if(glSecondaryColorPointer)
       glSecondaryColorPointer(size, type, stride, (GLvoid*)pointer);
     else
+#endif      
     if(glSecondaryColorPointerEXT)
       glSecondaryColorPointerEXT(size, type, stride, (GLvoid*)pointer);
     else
@@ -148,9 +152,11 @@ namespace vl
   
   inline void VL_glFogCoordPointer( GLenum type, GLsizei stride, GLvoid* pointer )
   {
+#ifdef GL_VERSION_1_4_DEPRECATED    
     if (glFogCoordPointer)
       glFogCoordPointer(type,stride,pointer);
     else
+#endif
     if (glFogCoordPointerEXT)
       glFogCoordPointerEXT(type,stride,pointer);
     else
@@ -220,9 +226,11 @@ namespace vl
   
   inline void VL_glClientActiveTexture(GLenum texture)
   {
+#ifdef GL_VERSION_1_4_DEPRECATED
     if(glClientActiveTexture)
       glClientActiveTexture(texture);
     else
+#endif
     if (glClientActiveTextureARB)
       glClientActiveTextureARB(texture);
     else

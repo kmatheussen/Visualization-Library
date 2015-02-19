@@ -3,6 +3,7 @@
 /_*/
 /@*/
 /build*/
+/qbin/
 
 # Ignore OS-generated files
 
