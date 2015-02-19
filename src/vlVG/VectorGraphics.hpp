@@ -170,6 +170,7 @@ namespace vl
         mStencil_SFail  = SO_KEEP;
         mStencil_SFail  = SO_KEEP;
         mStencil_DpFail = SO_KEEP;
+        mStencil_DpPass = SO_KEEP;
         mStencil_Function = FU_ALWAYS;
         mStencil_RefValue = 0;
         mStencil_FunctionMask = ~(unsigned int)0;
