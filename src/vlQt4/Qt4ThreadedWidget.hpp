@@ -190,6 +190,8 @@ namespace vlQt4
           time.restart();
           //QApplication::processEvents(QEventLoop::AllEvents, 1);
         }
+
+        _widget->doneCurrent();
       }
     };
 
