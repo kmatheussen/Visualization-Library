@@ -289,6 +289,64 @@ namespace vlQt4
 
     QGLFormat getQGLFormat(vl::OpenGLContextFormat vlFormat){
       QGLFormat qtFormat;
+      
+      qtFormat.setDoubleBuffer( vlFormat.doubleBuffer() );
+        
+      // color buffer
+      qtFormat.setRedBufferSize( vlFormat.rgbaBits().r() );
+      qtFormat.setGreenBufferSize( vlFormat.rgbaBits().g() );
+      qtFormat.setBlueBufferSize( vlFormat.rgbaBits().b() );
+      // setAlpha == true makes the create() function alway fail
+      // even if the returned format has the requested alpha channel
+      qtFormat.setAlphaBufferSize( vlFormat.rgbaBits().a() );
+      qtFormat.setAlpha( vlFormat.rgbaBits().a() != 0 );
+        
+      // accumulation buffer
+      int accum = vl::max( vlFormat.accumRGBABits().r(), vlFormat.accumRGBABits().g() );
+      accum = vl::max( accum, vlFormat.accumRGBABits().b() );
+      accum = vl::max( accum, vlFormat.accumRGBABits().a() );
+      qtFormat.setAccumBufferSize( accum );
+      qtFormat.setAccum( accum != 0 );
+        
+      // multisampling
+      if (vlFormat.multisample())
+        qtFormat.setSamples( vlFormat.multisampleSamples() );
+      qtFormat.setSampleBuffers( vlFormat.multisample() );
+        
+      // depth buffer
+      qtFormat.setDepthBufferSize( vlFormat.depthBufferBits() );
+      qtFormat.setDepth( vlFormat.depthBufferBits() != 0 );
+
+      // stencil buffer
+      qtFormat.setStencilBufferSize( vlFormat.stencilBufferBits() );
+      qtFormat.setStencil( vlFormat.stencilBufferBits() != 0 );
+        
+      // stereo
+      qtFormat.setStereo( vlFormat.stereo() );
+        
+      // swap interval / v-sync
+      qtFormat.setSwapInterval( vlFormat.vSync() ? 1 : 0 );
+
+#ifndef NDEBUG
+      printf("--------------------------------------------\n");
+      printf("REQUESTED OpenGL Format:\n");
+      printf("--------------------------------------------\n");
+      printf("rgba = %d %d %d %d\n", qtFormat.redBufferSize(), qtFormat.greenBufferSize(), qtFormat.blueBufferSize(), qtFormat.alphaBufferSize() );
+      printf("double buffer = %d\n", (int)qtFormat.doubleBuffer() );
+      printf("depth buffer size = %d\n", qtFormat.depthBufferSize() );
+      printf("depth buffer = %d\n", qtFormat.depth() );
+      printf("stencil buffer size = %d\n", qtFormat.stencilBufferSize() );
+      printf("stencil buffer = %d\n", qtFormat.stencil() );
+      printf("accum buffer size %d\n", qtFormat.accumBufferSize() );
+      printf("accum buffer %d\n", qtFormat.accum() );
+      printf("stereo = %d\n", (int)qtFormat.stereo() );
+      printf("swap interval = %d\n", qtFormat.swapInterval() );
+      printf("multisample = %d\n", (int)qtFormat.sampleBuffers() );
+      printf("multisample samples = %d\n", (int)qtFormat.samples() );
+#endif
+
+      return qtFormat;
+    }
 
     Qt4ThreadedWidget(vl::OpenGLContextFormat vlFormat, QWidget *parent=0)
       : QGLWidget(getQGLFormat(vlFormat), parent)
@@ -296,6 +354,7 @@ namespace vlQt4
     {
       init_qt(vlFormat);
     }
+
 
 
     ~Qt4ThreadedWidget()
@@ -319,14 +378,6 @@ namespace vlQt4
 
     
     virtual void init_qt(vl::OpenGLContextFormat vlFormat) {
-
-      /*
-        int x = 10;
-        int y = 10;
-        int width = 512;
-        int height= 512;
-      */
-
 
 #ifndef NDEBUG
       QGLFormat qtFormat = format();
@@ -353,9 +404,6 @@ namespace vlQt4
         QGLWidget::setWindowState(QGLWidget::windowState() | Qt::WindowFullScreen);        
       else
         QGLWidget::setWindowState(QGLWidget::windowState() & (~Qt::WindowFullScreen));
-
-
-      doneCurrent();
 
       mythread->start();
     }
