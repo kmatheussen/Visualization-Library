@@ -287,53 +287,8 @@ namespace vlQt4
       mythread->push_event(e); 
     }
 
-    QGLFormat desiredFormat(){
-      QGLFormat fmt;
-      fmt.setSwapInterval(1);
-      return fmt;
-    }
-
-    Qt4ThreadedWidget(vl::OpenGLContextFormat vlFormat, QWidget *parent=0)
-      : QGLWidget(parent)
-      , mythread(new MyThread(this))
-    {
-      init_qt(vlFormat);
-    }
-
-
-
-    ~Qt4ThreadedWidget()
-    {
-      stop();
-    }
-
-    void stop(){
-      if (mythread->isRunning()) {
-        Event e;
-        e.type = Event::DESTROY;
-        
-        mythread->push_event(e); 
-        printf("waiting\n");
-        mythread->wait();
-        printf("got it\n");
-      }
-    }
-
-    virtual void init_vl(vl::OpenGLContext *glContext)  = 0;
-
-    
-    virtual void init_qt(vl::OpenGLContextFormat vlFormat) {
-
-      /*
-        int x = 10;
-        int y = 10;
-        int width = 512;
-        int height= 512;
-      */
-
-      // setFormat(qtFormat) is marked as deprecated so we use this other method
-      QGLContext* glctx = new QGLContext(context()->format(), this);
-      QGLFormat qtFormat = context()->format();
+    QGLFormat getQGLFormat(vl::OpenGLContextFormat vlFormat){
+      QGLFormat qtFormat;
             
       // double buffer
       qtFormat.setDoubleBuffer( vlFormat.doubleBuffer() );
@@ -372,12 +327,6 @@ namespace vlQt4
         
       // swap interval / v-sync
       qtFormat.setSwapInterval( vlFormat.vSync() ? 1 : 0 );
-        
-      glctx->setFormat(qtFormat);
-      // this function returns false when we request an alpha buffer
-      // even if the created context seem to have the alpha buffer
-      /*bool ok = */glctx->create(NULL);
-      setContext(glctx);
 
 #ifndef NDEBUG
       printf("--------------------------------------------\n");
@@ -395,8 +344,51 @@ namespace vlQt4
       printf("swap interval = %d\n", qtFormat.swapInterval() );
       printf("multisample = %d\n", (int)qtFormat.sampleBuffers() );
       printf("multisample samples = %d\n", (int)qtFormat.samples() );
+#endif
+      return qtFormat;
+    }
 
-      qtFormat = format();
+    Qt4ThreadedWidget(vl::OpenGLContextFormat vlFormat, QWidget *parent=0)
+      : QGLWidget(getQGLFormat(vlFormat), parent)
+      , mythread(new MyThread(this))
+    {
+      init_qt(vlFormat);
+    }
+
+
+
+    ~Qt4ThreadedWidget()
+    {
+      stop();
+    }
+
+    void stop(){
+      if (mythread->isRunning()) {
+        Event e;
+        e.type = Event::DESTROY;
+        
+        mythread->push_event(e); 
+        printf("waiting\n");
+        mythread->wait();
+        printf("got it\n");
+      }
+    }
+
+    virtual void init_vl(vl::OpenGLContext *glContext)  = 0;
+
+    
+    virtual void init_qt(vl::OpenGLContextFormat vlFormat) {
+
+      /*
+        int x = 10;
+        int y = 10;
+        int width = 512;
+        int height= 512;
+      */
+
+
+#ifndef NDEBUG
+      QGLFormat qtFormat = format();
 
       printf("--------------------------------------------\n");
       printf("OBTAINED OpenGL Format:\n");
@@ -421,6 +413,8 @@ namespace vlQt4
       else
         QGLWidget::setWindowState(QGLWidget::windowState() & (~Qt::WindowFullScreen));
 
+
+      doneCurrent();
 
       mythread->start();
     }
