@@ -1,4 +1,4 @@
-
+[![Build Status](https://travis-ci.org/hoopoe/Visualization-Library.svg?branch=master)](https://travis-ci.org/hoopoe/Visualization-Library)
 Welcome to Visualization Library!
 =================================
 
