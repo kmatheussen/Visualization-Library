@@ -32,6 +32,7 @@
 #ifndef Qt4ThreadedWindow_INCLUDE_ONCE
 #define Qt4ThreadedWindow_INCLUDE_ONCE
 
+
 #include <vlQt4/link_config.hpp>
 #include <vlCore/VisualizationLibrary.hpp>
 #include <vlGraphics/OpenGLContext.hpp>
@@ -48,6 +49,9 @@
 #include <QtCore/QQueue>
 #include <QtOpenGL/QGLWidget>
 #include <QtOpenGL/QGLFormat>
+
+
+
 
 namespace vlQt4
 {
@@ -155,7 +159,10 @@ namespace vlQt4
 
       void makeCurrent()
       {
-        _widget->makeCurrent();
+        // _widget->makeCurrent() is already called in run().
+        // Calling it more often sometimes causes crashes using the catalyst driver on Linux.
+        
+        //_widget->makeCurrent();
       }
 
       void run() {
@@ -164,7 +171,8 @@ namespace vlQt4
 
         Qt4ThreadedWidget *widget = _widget;
 
-        makeCurrent();
+        _widget->makeCurrent();
+        //makeCurrent();
 
         widget->init_vl(this);
 
