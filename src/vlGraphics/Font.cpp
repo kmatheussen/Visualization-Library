@@ -84,6 +84,7 @@ Font::Font(FontManager* fm)
 {
   VL_DEBUG_SET_OBJECT_NAME()
   mFontManager = fm;
+  mSize    = 0;
   mHeight  = 0;
   mFT_Face = NULL;
   mSmooth  = false;
@@ -95,6 +96,7 @@ Font::Font(FontManager* fm, const String& font_file, int size)
 {
   VL_DEBUG_SET_OBJECT_NAME()
   mFontManager = fm;
+  mSize    = 0;
   mHeight  = 0;
   mFT_Face = NULL;
   mSmooth  = false;
