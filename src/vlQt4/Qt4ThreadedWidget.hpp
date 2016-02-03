@@ -47,6 +47,7 @@
 #include <QtCore/QThread>
 #include <QtCore/QMutex>
 #include <QtCore/QQueue>
+#include <QtCore/QAtomicInt>
 #include <QtOpenGL/QGLWidget>
 #include <QtOpenGL/QGLFormat>
 
@@ -90,8 +91,8 @@ namespace vlQt4
       QMutex mutex;
       QQueue<Event> queue;
 
-      volatile int widget_width;
-      volatile int widget_height;
+      QAtomicInt widget_width;
+      QAtomicInt widget_height;
 
       QTime time;
 
@@ -180,9 +181,9 @@ namespace vlQt4
 
         while(handle_events()==true){
 
-          if(widget_height!=height || widget_width!=width){
-            width = widget_width;
-            height = widget_height;
+          if(int(widget_height)!=height || int(widget_width)!=width){
+            width = int(widget_width);
+            height = int(widget_height);
             printf("resizing to %d/%d\n",width,height);
             dispatchResizeEvent(width,height);
           }
