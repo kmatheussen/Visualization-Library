@@ -51,9 +51,6 @@
 #include <QtOpenGL/QGLFormat>
 
 
-static bool g_gotit = false;
-
-
 namespace vlQt5
 {
 
@@ -171,8 +168,6 @@ namespace vlQt5
         int height = 0;
 
         Qt5ThreadedWidget *widget = _widget;
-
-        while(g_gotit==false);
 
         _widget->makeCurrent();
         //makeCurrent();
@@ -371,12 +366,8 @@ namespace vlQt5
     {
       init_qt(vlFormat);
 
-      if(g_gotit==false){
-        doneCurrent();
-        context()->moveToThread(mythread);
-        g_gotit=true;
-      }
-
+      doneCurrent();
+      context()->moveToThread(mythread);
     }
 
 
