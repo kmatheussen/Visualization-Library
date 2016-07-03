@@ -29,8 +29,13 @@
 /*                                                                                    */
 /**************************************************************************************/
 
+#include <unistd.h>
+
+#include <QWidget>
+
 #include <vlCore/DiskDirectory.hpp>
-#include <vlQt5/Qt5Widget.hpp>
+#include <vlQt5/Qt5ThreadedWidget.hpp>
+#include "Applets/App_RotatingCube.hpp"
 #include <vlCore/Log.hpp>
 #include <vlCore/Say.hpp>
 #include "tests.hpp"
@@ -38,58 +43,76 @@
 using namespace vl;
 using namespace vlQt5;
 
-class TestBatteryQt5: public TestBattery
-{
+class MyQt5ThreadedWidget : public Qt5ThreadedWidget {
+  //  Q_OBJECT
+
 public:
-  TestBatteryQt5(QApplication& app): mApplication(app) {}
+  
+  ref<Applet> applet;
 
-  void runGUI(const vl::String& title, BaseDemo* applet, vl::OpenGLContextFormat format, int x, int y, int width, int height, vl::fvec4 bk_color, vl::vec3 eye, vl::vec3 center)
+  MyQt5ThreadedWidget(vl::OpenGLContextFormat vlFormat, QWidget *parent=0)
+    : Qt5ThreadedWidget(vlFormat, parent)
   {
-    /* used to display the application title next to FPS counter */
-    applet->setAppletName(title);
+    /* create the applet to be run */
+    //applet = Create_App_VectorGraphics(); //new App_RotatingCube;
+    applet = new App_RotatingCube;
+    //ref<Applet> applet = new App_RotatingCube;
 
-    /* create a native Qt5 window */
-    vl::ref<vlQt5::Qt5Widget> qt5_window = new vlQt5::Qt5Widget;
+    applet->initialize();
 
-    setupApplet(applet, qt5_window.get(), bk_color, eye, center);
-
-    /* Initialize the OpenGL context and window properties */
-    qt5_window->initQt5Widget( title, format, NULL, x, y, width, height );
-
-    /* show the window */
-    qt5_window->show();
-
-    /* run the Qt5 message loop */
-    mApplication.exec();
-
-    /* deallocate the window with all the OpenGL resources before shutting down Visualization Library */
-    qt5_window = NULL;
   }
 
-public:
-  QApplication& mApplication;
+  virtual void init_vl(vl::OpenGLContext *glContext) {
+    
+    glContext->initGLContext();
+
+    /* bind the applet so it receives all the GUI events related to the OpenGLContext */
+    glContext->addEventListener(applet.get());
+
+    /* target the window so we can render on it */
+    applet->rendering()->as<Rendering>()->renderer()->setFramebuffer(glContext->framebuffer() );
+
+    /* black background */
+    applet->rendering()->as<Rendering>()->camera()->viewport()->setClearColor( black );
+
+    /* define the camera position and orientation */
+    vec3 eye    = vec3(0,10,35); // camera position
+    vec3 center = vec3(0,0,0);   // point the camera is looking at
+    vec3 up     = vec3(0,1,0);   // up direction
+    mat4 view_mat = mat4::getLookAt(eye, center, up);
+    applet->rendering()->as<Rendering>()->camera()->setViewMatrix( view_mat );
+
+    applet->setAppletName("hello");
+  }
 };
+
 //-----------------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
+  QCoreApplication::setAttribute(Qt::AA_X11InitThreads);
+
   QApplication app(argc, argv);
 
-  /* parse command line arguments */
-  int   test = 0;
-  if (argc>=2)
-    test = atoi(argv[1]);
+  VisualizationLibrary::init();
 
   /* setup the OpenGL context format */
-  vl::OpenGLContextFormat format;
-  format.setDoubleBuffer(true);
-  format.setRGBABits( 8,8,8,8 );
-  format.setDepthBufferBits(24);
-  format.setFullscreen(false);
-  format.setMultisampleSamples(16);
-  format.setMultisample(false);
+  vl::OpenGLContextFormat vlFormat;
+  //vlFormat.setDoubleBuffer(true);
+  vlFormat.setDoubleBuffer(true);
+  vlFormat.setRGBABits( 8,8,8,8 );
+  vlFormat.setDepthBufferBits(24);
+  vlFormat.setFullscreen(false);
+  vlFormat.setMultisampleSamples(8);
+  vlFormat.setMultisample(true);
+  //vlFormat.setMultisample(false);
 
-  TestBatteryQt5 test_battery(app);
-  test_battery.run(test, argv[1], format);
+  MyQt5ThreadedWidget widget(vlFormat);
+  widget.resize(1000,1000);
+
+  widget.show();
+
+
+  app.exec();
 
   return 0;
 }
