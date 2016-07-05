@@ -364,10 +364,10 @@ namespace vlQt5
       : QGLWidget(getQGLFormat(vlFormat), parent)
       , mythread(new MyThread(this))
     {
-      init_qt(vlFormat);
-
       doneCurrent();
       context()->moveToThread(mythread);
+      
+      init_qt(vlFormat);
     }
 
 
