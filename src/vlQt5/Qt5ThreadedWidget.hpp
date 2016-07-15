@@ -36,19 +36,20 @@
 #include <vlCore/VisualizationLibrary.hpp>
 #include <vlGraphics/OpenGLContext.hpp>
 #include <vlCore/Log.hpp>
-#include <QtGui/QApplication>
-#include <QtGui/QMouseEvent>
-#include <QtGui/QWidget>
-#include <QtCore/QUrl>
-#include <QtCore/QTimer>
-#include <QtCore/QTime>
-#include <QtCore/QObject>
-#include <QtCore/QThread>
-#include <QtCore/QMutex>
-#include <QtCore/QQueue>
-#include <QtCore/QAtomicInt>
-#include <QtOpenGL/QGLWidget>
-#include <QtOpenGL/QGLFormat>
+
+#include <QApplication>
+#include <QMouseEvent>
+#include <QWidget>
+#include <QUrl>
+#include <QTimer>
+#include <QTime>
+#include <QObject>
+#include <QThread>
+#include <QMutex>
+#include <QQueue>
+#include <QAtomicInt>
+#include <QGLWidget>
+#include <QGLFormat>
 
 
 namespace vlQt5
