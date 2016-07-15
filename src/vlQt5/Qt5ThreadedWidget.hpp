@@ -178,9 +178,12 @@ namespace vlQt5
 
         while(handle_events()==true){
 
-          if(int(widget_height)!=height || int(widget_width)!=width){
-            width = int(widget_width);
-            height = int(widget_height);
+          int new_height = widget_height.load();
+          int new_width  = widget_width.load();
+          
+          if(new_height!=height || new_width!=width){
+            width = new_width;
+            height = new_height;
             printf("resizing to %d/%d\n",width,height);
             dispatchResizeEvent(width,height);
           }
