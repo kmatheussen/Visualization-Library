@@ -396,7 +396,7 @@ namespace vlQt5
     virtual void init_vl(vl::OpenGLContext *glContext)  = 0;
 
     
-    virtual void init_qt(vl::OpenGLContextFormat vlFormat) {
+    void init_qt(vl::OpenGLContextFormat vlFormat) {
 
 #ifndef NDEBUG
       QGLFormat qtFormat = format();
