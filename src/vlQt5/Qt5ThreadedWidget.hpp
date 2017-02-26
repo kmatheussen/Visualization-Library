@@ -48,6 +48,7 @@
 #include <QMutex>
 #include <QQueue>
 #include <QAtomicInt>
+#include <QSemaphore>
 #include <QGLWidget>
 #include <QGLFormat>
 
@@ -94,6 +95,8 @@ namespace vlQt5
 
       QTime time;
 
+      QSemaphore *wait_semaphore;
+      
       MyThread(Qt5ThreadedWidget* widget)
         : _widget(widget)
         , widget_width(10)
@@ -164,6 +167,15 @@ namespace vlQt5
         //_widget->makeCurrent();
       }
 
+      void startThread(void){
+        wait_semaphore = new QSemaphore;
+
+        start();
+
+        wait_semaphore->acquire();
+        delete wait_semaphore;
+      }
+
       void run() {
         int width = 0;
         int height = 0;
@@ -175,6 +187,8 @@ namespace vlQt5
 
         widget->init_vl(this);
 
+        wait_semaphore->release();
+        
         //dispatchResizeEvent(2000,1024);
 
         while(handle_events()==true){
@@ -364,18 +378,26 @@ namespace vlQt5
       return qtFormat;
     }
 
+    vl::OpenGLContextFormat vlFormat;
+    
     Qt5ThreadedWidget(vl::OpenGLContextFormat vlFormat, QWidget *parent=0)
       : QGLWidget(getQGLFormat(vlFormat), parent)
       , mythread(new MyThread(this))
+      , vlFormat(vlFormat)
     {
-      doneCurrent();
-      context()->moveToThread(mythread);
-      
-      init_qt(vlFormat);
     }
 
 
+    void start(void){
+      doneCurrent();
 
+      init_qt(vlFormat);
+
+      context()->moveToThread(mythread);
+      
+      mythread->startThread();
+    }
+    
     ~Qt5ThreadedWidget()
     {
       stop();
@@ -395,6 +417,7 @@ namespace vlQt5
 
     virtual void init_vl(vl::OpenGLContext *glContext)  = 0;
 
+  private:
     
     void init_qt(vl::OpenGLContextFormat vlFormat) {
 
@@ -423,8 +446,6 @@ namespace vlQt5
         QGLWidget::setWindowState(QGLWidget::windowState() | Qt::WindowFullScreen);        
       else
         QGLWidget::setWindowState(QGLWidget::windowState() & (~Qt::WindowFullScreen));
-
-      mythread->start();
     }
   };
 }
