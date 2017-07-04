@@ -120,6 +120,7 @@ namespace vlQt5
             break;
           case Event::MOUSEMOVE:
             dispatchMouseMoveEvent(e.x,e.y);
+            break;
           case Event::WHEEL:
             dispatchMouseWheelEvent(e.wheel);
             break;
