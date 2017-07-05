@@ -318,7 +318,7 @@ namespace vl
           e(j,i) = e(i,j);
           e(i,j) = tmp;
         }
-        return *this;
+      return *this;
     }
     //-----------------------------------------------------------------------------
     Matrix3 getTransposed() const
